@@ -25,6 +25,18 @@ analyze_video_count = 0
 analyze_video_mean = 0.0
 
 def measure_performance(timestamp, last_result, cycle_count):
+    """
+    This function measures the mean duration of other functions in this file.
+    Gets called at each running cycle of a function
+
+    Parameters:
+        timestamp (time.time): the starting timestamp of the current function call
+        last_result: the mean duration time up of the cycle before
+        cycle_count: how many times the function has been called until now
+
+    Result:
+        mean_duration: the newest mean duration time of the function
+    """
     now = time.time()
     duration = now - timestamp
     mean_duration = (((cycle_count-1)*last_result)+duration)/cycle_count
