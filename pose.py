@@ -6,6 +6,7 @@ from mediapipe.framework.formats import landmark_pb2
 import numpy as np
 import time
 import csv 
+import os
 
 from datamanager_candor import get_biggest_files
 #from datamanager_emoreact import create_dataframe, get_df_test, get_df_train, get_df_val
@@ -38,6 +39,7 @@ def measure_performance(timestamp, last_result, cycle_count):
         mean_duration: the newest mean duration time of the function
     """
     now = time.time()
+    #print(f"Last timestamp: {timestamp}, last mean: {last_result}, Count: {cycle_count}")
     duration = now - timestamp
     mean_duration = (((cycle_count-1)*last_result)+duration)/cycle_count
     return mean_duration
@@ -78,7 +80,7 @@ def write_pose_to_csv(path, frame_number, id, landmarks):
         csv_writer.writerows(converted_csv_data)
 
     csv_write_mean = measure_performance(csv_start_time, csv_write_mean, csv_write_count)
-    print(f"write_to_csv mean duration: {csv_write_mean}")
+    #print(f"write_to_csv mean duration: {csv_write_mean}")
 
 def detect_both_online(image):
     """
@@ -108,7 +110,7 @@ def detect_both_online(image):
         right_online = True
 
     detect_both_mean = measure_performance(detect_both_start_time, detect_both_mean, detect_both_count)
-    print(f"write_to_csv mean duration: {detect_both_mean}")
+    #print(f"detect_both_online mean duration: {detect_both_mean}")
     
     if left_online and right_online:
         return True
@@ -158,7 +160,7 @@ def draw_landmarks(image, results):
             mp.solutions.drawing_styles.get_default_pose_landmarks_style())
         
     draw_landmarks_mean = measure_performance(draw_landmarks_start_time, draw_landmarks_mean, draw_landmarks_count)
-    print(f"draw_landmarks mean duration: {detect_both_mean}")
+    #print(f"draw_landmarks mean duration: {detect_both_mean}")
     return annotated_image
 
 def print_result(detection_result: vision.PoseLandmarkerResult, output_image: mp.Image,
@@ -189,7 +191,7 @@ def print_result(detection_result: vision.PoseLandmarkerResult, output_image: mp
         draw_landmarks(output_image.numpy_view(), detection_result), cv2.COLOR_RGB2BGR)
     
     print_result_mean = measure_performance(print_result_start_time, print_result_mean, print_result_count)
-    print(f"print_results mean duration: {print_result_mean}")
+    #print(f"print_results mean duration: {print_result_mean}")
 
 
 def analyze_video(path):
@@ -205,15 +207,14 @@ def analyze_video(path):
     global analyze_video_mean 
     global analyze_video_count
 
-    with vision.PoseLandmarker.create_from_options(options) as landmarker:
-    
-        analyze_video_start_time = time.time()
-        analyze_video_count += 1
-        
+    with vision.PoseLandmarker.create_from_options(options) as landmarker:        
         cap = cv2.VideoCapture(path)
         global frame
         frame = 0
         while cap.isOpened():
+            analyze_video_start_time = time.time()
+            analyze_video_count += 1
+
             success, image = cap.read()
             start_time = time.time()
             #print(f"Frame: {frame}")
@@ -221,6 +222,7 @@ def analyze_video(path):
                 break
 
             if not detect_both_online(image):
+                analyze_video_count -=1
                 continue
 
             mp_image = mp.Image(
@@ -229,17 +231,23 @@ def analyze_video(path):
             timestamp_ms = int(cv2.getTickCount() / cv2.getTickFrequency() * 1000)
             landmarker.detect_async(mp_image, timestamp_ms)            
             
+            
             if output_window is not None:
                 cv2.imshow("MediaPipe Pose Landmark", output_window)
 
+            end_time = time.time()
+            print(f"Time: {end_time-start_time}")
+            
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
+            
             end_time = time.time()
             print(f"FPS: {1.0 / (end_time-start_time)}")
             frame += 1
 
             analyze_video_mean = measure_performance(analyze_video_start_time, analyze_video_mean, analyze_video_count)
-            print(f"write_to_csv mean duration: {analyze_video_mean}")
+            print(f"analyze_video mean duration: {analyze_video_mean}")
+            time.sleep(0.02)
 
 def test_emoreact():
     df_test = get_df_test()
