@@ -12,7 +12,7 @@ thread_local = threading.local()
 current_output_path = ""
 current_video_path = ""
 # Filepath od extracted dataset
-dataset_filepath = 'E:/Abschlussarbeit_Datasets/CANDOR/processed_dataset/data/00ae2f18-9599-4df6-8e3a-6936c86b97f0'
+dataset_filepath = '/media/christoph/Crucial X8/Abschlussarbeit_Datasets/CANDOR/processed_dataset/processed/00ae2f18-9599-4df6-8e3a-6936c86b97f0'
 # user ids of dataset, used for mp4 filename
 video_user_ids = json.load(open(dataset_filepath + '/processed/channel_map.json'))
 print(video_user_ids)
@@ -103,9 +103,9 @@ if __name__ == "__main__":
         path_index = video_paths.index(video)
         current_output_path = output_csv_paths[path_index]
         current_video_path = video_paths[path_index]
-        total_frames = 1000 #Original: int(cv2.VideoCapture(video_paths[path_index]).get(cv2.CAP_PROP_FRAME_COUNT))
+        total_frames = 200 #Original: int(cv2.VideoCapture(video_paths[path_index]).get(cv2.CAP_PROP_FRAME_COUNT))
         
-        # Divicde Video into smaller parts for multithreading
+        # Divice Video into smaller parts for multithreading
         number_of_parts = 4
         frames_per_part = total_frames // number_of_parts
         video_parts_to_analyze = []
