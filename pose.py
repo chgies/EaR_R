@@ -7,81 +7,29 @@ import numpy as np
 import time
 import csv 
 import os
+import torch
+import tensorflow as tf
+from threading import Thread
+import concurrent.futures
 
+from datamanager_candor import get_all_movie_files
 from datamanager_candor import get_biggest_files
 #from datamanager_emoreact import create_dataframe, get_df_test, get_df_train, get_df_val
 
 output_window = None    # Used as screen variable to draw landmarks on
 last_timestamp_ms = 0   # needed by Mediapipe when in "LIVE_STREAM"-RunningMode
 frame = 0               # The current frame of the video, used to write pose data to csv
-csv_write_count = 0
-csv_write_mean = 0.0
-detect_both_count = 0
-detect_both_mean = 0.0
-draw_landmarks_count = 0
-draw_landmarks_mean = 0.0
-print_result_count = 0
-print_result_mean = 0.0
-analyze_video_count = 0
-analyze_video_mean = 0.0
 
-def measure_performance(timestamp, last_result, cycle_count):
-    """
-    This function measures the mean duration of other functions in this file.
-    Gets called at each running cycle of a function
+analyzed_results = "frame,person,x,y,z\n"
 
-    Parameters:
-        timestamp (time.time): the starting timestamp of the current function call
-        last_result: the mean duration time up of the cycle before
-        cycle_count: how many times the function has been called until now
-
-    Result:
-        mean_duration: the newest mean duration time of the function
-    """
-    now = time.time()
-    #print(f"Last timestamp: {timestamp}, last mean: {last_result}, Count: {cycle_count}")
-    duration = now - timestamp
-    mean_duration = (((cycle_count-1)*last_result)+duration)/cycle_count
-    return mean_duration
-
-
-def write_pose_to_csv(path, frame_number, id, landmarks):
-    """
-    Takes landmark data and writes it to a csv file for further processing.
-    Gets called in draw_landmarks().
-
-    Parameters:
-    path (string): The path of the video
-    frame_number (integer): the global variable of the current frame
-    id (mediapipe.framework.formats.landmark_pb2): the id of the pose found in the current frame. One id for each person
-    landmarks(mediapipe.framework.formats.landmark_pb2): the landmarks of the found id
-
-    ------
-
-    The landmark has the following structure, with each value in float format (x,y,z: [-1,1], visibility, presence: [0,1]):
-    [NormalizedLandmark(x, y, z, visibility, presence), NormalizedLandmark(x, y, z, visibility, presence)...]
+def write_pose_to_csv(person_id):
+    global analyzed_results
+    output_dir = f'/mnt/g/Abschlussarbeit_Datasets/CANDOR/processed_dataset/processed/fffda3e6-7d99-4db8-aa12-16e99fa454c2/processed'+ f'/pose_{person_id}.csv'
+    file = open(output_dir, 'a', newline='')
+    file.writelines(analyzed_results)
+    analyzed_results = ""
+    file.close()
     
-    """
-    global csv_write_count
-    global csv_write_mean
-
-    csv_start_time = time.time()
-    csv_write_count  += 1
-
-    output_dir = path + '/pose.csv'
-    converted_csv_data = []
-    for landmark in (landmarks):
-        converted_csv_data.append([frame_number, id, landmark.x, landmark.y, landmark.z])
-
-    with open(output_dir, 'a', newline='') as csvfile:
-        csv_writer = csv.writer(csvfile)
-        if csv.reader(csvfile).line_num == 0:
-            csv_writer.writerow(['frame_number', 'id', 'x', 'y', 'z'])
-        csv_writer.writerows(converted_csv_data)
-
-    csv_write_mean = measure_performance(csv_start_time, csv_write_mean, csv_write_count)
-    #print(f"write_to_csv mean duration: {csv_write_mean}")
-
 def detect_both_online(image):
     """
     Detects whether both screens are online based on the given image. Only need if there are 2 screens in the video.
@@ -92,10 +40,6 @@ def detect_both_online(image):
     Returns:
     bool: True if both screens are online, False otherwise.
     """
-    global detect_both_mean 
-    global detect_both_count 
-    detect_both_start_time = time.time()
-    detect_both_count += 1
 
     left_online = False
     right_online = False
@@ -108,9 +52,6 @@ def detect_both_online(image):
         left_online = True
     if np.mean(right) > 10:
         right_online = True
-
-    detect_both_mean = measure_performance(detect_both_start_time, detect_both_mean, detect_both_count)
-    #print(f"detect_both_online mean duration: {detect_both_mean}")
     
     if left_online and right_online:
         return True
@@ -129,21 +70,21 @@ def draw_landmarks(image, results):
         numpy.ndarray: The image with landmarks drawn.
     """
     
-    global draw_landmarks_mean 
-    global draw_landmarks_count
-    draw_landmarks_start_time = time.time()
-    draw_landmarks_count += 1
-
-
     pose_landmarks_list = results.pose_landmarks
+
     annotated_image = np.copy(image)
     global frame
 
-    # Loop through the detected poses to visualize.
+    global analyzed_results
+    # draw poses on opencv window.
     for idx in range(len(pose_landmarks_list)):
+
         pose_landmarks = pose_landmarks_list[idx]
-        #print(f"IDX: {idx}, LM: {pose_landmarks}")
-        write_pose_to_csv('/media/christoph/Crucial X8/Abschlussarbeit_Datasets/CANDOR/processed_dataset/processed/fffda3e6-7d99-4db8-aa12-16e99fa454c2/processed',idx, frame,pose_landmarks)
+            
+        # this is used to save found points for csv files
+        for landmark in pose_landmarks:
+            new_row = f"{frame},{idx},{landmark.x},{landmark.y},{landmark.z}"
+            analyzed_results += ("\n"+new_row)
 
         pose_landmarks_proto = landmark_pb2.NormalizedLandmarkList()
 
@@ -158,9 +99,7 @@ def draw_landmarks(image, results):
             pose_landmarks_proto,
             mp.solutions.pose.POSE_CONNECTIONS,
             mp.solutions.drawing_styles.get_default_pose_landmarks_style())
-        
-    draw_landmarks_mean = measure_performance(draw_landmarks_start_time, draw_landmarks_mean, draw_landmarks_count)
-    #print(f"draw_landmarks mean duration: {detect_both_mean}")
+    
     return annotated_image
 
 def print_result(detection_result: vision.PoseLandmarkerResult, output_image: mp.Image,
@@ -175,23 +114,18 @@ def print_result(detection_result: vision.PoseLandmarkerResult, output_image: mp
 
     """
 
-    global print_result_mean 
-    global print_result_count 
-    print_result_start_time = time.time()
-    print_result_count += 1
-
     global output_window
     global last_timestamp_ms
 
     if timestamp_ms < last_timestamp_ms:
         return
     last_timestamp_ms = timestamp_ms
-    # print("pose landmarker result: {}".format(detection_result))
+    
     output_window = cv2.cvtColor(
         draw_landmarks(output_image.numpy_view(), detection_result), cv2.COLOR_RGB2BGR)
-    
-    print_result_mean = measure_performance(print_result_start_time, print_result_mean, print_result_count)
-    #print(f"print_results mean duration: {print_result_mean}")
+
+    #if RunningMode is VIDEO
+    return output_window
 
 
 def analyze_video(path):
@@ -204,50 +138,61 @@ def analyze_video(path):
         None
     """
 
-    global analyze_video_mean 
-    global analyze_video_count
+    if path == '/mnt/g/Abschlussarbeit_Datasets/CANDOR/processed_dataset/processed/fffda3e6-7d99-4db8-aa12-16e99fa454c2/processed/5d5162f1b50a1000169da137.mp4':
+        id = 0
+    else:
+        id = 1
+    print(f"Starting analysis of video {id}")
 
     with vision.PoseLandmarker.create_from_options(options) as landmarker:        
         cap = cv2.VideoCapture(path)
         global frame
         frame = 0
         while cap.isOpened():
-            analyze_video_start_time = time.time()
-            analyze_video_count += 1
-
             success, image = cap.read()
             start_time = time.time()
-            #print(f"Frame: {frame}")
             if not success:
                 break
-
+            
             if not detect_both_online(image):
-                analyze_video_count -=1
+                frame += 1
                 continue
 
             mp_image = mp.Image(
                 image_format=mp.ImageFormat.SRGB,
                 data=cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
             timestamp_ms = int(cv2.getTickCount() / cv2.getTickFrequency() * 1000)
-            landmarker.detect_async(mp_image, timestamp_ms)            
             
+            # if runningMode is LIVESTREAM
+                #landmarker.detect_async(mp_image, timestamp_ms)            
+                
+            #if RunningMode is VIDEO
+            result = landmarker.detect_for_video(mp_image, timestamp_ms)
+                      
+            output_window = cv2.cvtColor(
+                draw_landmarks(image, result), cv2.COLOR_RGB2BGR)
+            # end of VIDEO RunningMode code
             
+            #if RunningMode is LIVESTREAM
+            #if output_window is not None:
+                #cv2.imshow("MediaPipe Pose Landmark", output_window)
+
+            #if RunningMode is VIDEO
             if output_window is not None:
                 cv2.imshow("MediaPipe Pose Landmark", output_window)
 
-            end_time = time.time()
-            print(f"Time: {end_time-start_time}")
-            
+
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
-            
-            end_time = time.time()
-            print(f"FPS: {1.0 / (end_time-start_time)}")
-            frame += 1
 
-            analyze_video_mean = measure_performance(analyze_video_start_time, analyze_video_mean, analyze_video_count)
-            print(f"analyze_video mean duration: {analyze_video_mean}")
-            time.sleep(0.02)
+            # write found pose data every x frames to corresponding csv file.
+            # should be done more often since fps rate decreases      
+            if frame%100 == 0:
+                write_pose_to_csv(id)
+  
+            end_time = time.time()
+            print(f"FPS of video {id}: {1.0 / (end_time-start_time)}")
+            frame += 1
 
 def test_emoreact():
     df_test = get_df_test()
@@ -261,29 +206,43 @@ def test_emoreact():
         print("done")
 
 def test_candor():
-    files = get_biggest_files()
-    print(files)
-    for file in files:
-        analyze_video(file)
-        print("done")
+    """
+    This function tests CANDOR dataset. It searches the video files of every participiant (not the combined video, due to computation speed) and
+    uses multithreading to analyze each of the videos. In the end, a csv file for every participiant exists, with the found pose coordinates
+    in every frame.
+    """
+    all_files = get_all_movie_files()
+    videolist = []
+    for files_in_directory in all_files:
+        videolist.append(files_in_directory[0]+"0")
+        videolist.append(files_in_directory[1]+"1")
+    
+    print(videolist)
+    with concurrent.futures.ProcessPoolExecutor(max_workers=2) as executor:
+       executor.map(analyze_video,videolist)
 
-
+    
 if __name__ == "__main__":
+
+    # Assuring if GPU is used
+    #print (torch.version.cuda)
+    #print(torch.cuda.is_available())
+    #print(torch.cuda.device_count())
+    #print("Num GPUs Available: ", tf.config.list_physical_devices('GPU'))
 
     #test_emoreact()
 
-    ### Basic Options used to initialize Mediapipe Pose Detector
 
     # landmark files available on https://developers.google.com/mediapipe/solutions/vision/pose_landmarker
-    base_options = python.BaseOptions(model_asset_path='./landmark_files/pose_landmarker_heavy.task')
+    base_options = python.BaseOptions(model_asset_path='./landmark_files/pose_landmarker_lite.task', delegate="GPU")
     options = vision.PoseLandmarkerOptions(
         base_options=base_options,
-        running_mode=vision.RunningMode.LIVE_STREAM,
-        num_poses=2,
+        running_mode=vision.RunningMode.VIDEO,#LIVE_STREAM,
+        num_poses=1,
         min_pose_detection_confidence=0.7,
         min_pose_presence_confidence=0.7,
         min_tracking_confidence=0.8,
         output_segmentation_masks=False,
-        result_callback=print_result
+        #result_callback=print_result   # only needed when RunningMode is LIVE_STREAM
     )
     test_candor()

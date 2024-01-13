@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 CANDOR_DIR = None
 load_dotenv()
 CANDOR_DIR = os.getenv("CANDOR_DIR")
-print(CANDOR_DIR)
+print(f"Candor directory: {CANDOR_DIR}")
 
 # def list all directories in a path
 def list_directories(path):
@@ -15,12 +15,25 @@ def list_directories(path):
 def get_biggest_file(path):
     path += "/processed"
 
-    # changed this path to fit for my directory structure
-    return max([os.path.join(path, o) for o in os.listdir(path)], key=os.path.getsize)+'/processed/fffda3e6-7d99-4db8-aa12-16e99fa454c2.mp4'
+    return max([os.path.join(path, o) for o in os.listdir(path)], key=os.path.getsize)
+
+# get the videos in directory
+def get_movie_files(path):
+    path += "/processed/"
+    movie_files = []
+    for file in os.listdir(path):
+        filename, ending = os.path.splitext(file)
+        if ending == ".mp4"and '-' not in filename:
+            movie_files.append(path+file)
+    return movie_files
 
 # for each dir get biggest file
 def get_biggest_files():
     return [get_biggest_file(dir) for dir in dirs]
 
+# for each dir get movie files
+def get_all_movie_files():
+    return [get_movie_files(dir) for dir in dirs]
 
-dirs = list_directories(CANDOR_DIR)
+dirs = list_directories(CANDOR_DIR+'processed_dataset/processed/')
+
