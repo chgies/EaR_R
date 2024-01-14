@@ -13,21 +13,60 @@ from threading import Thread
 import concurrent.futures
 
 from datamanager_candor import get_all_movie_files
-from datamanager_candor import get_biggest_files
+#from datamanager_candor import get_biggest_files
 #from datamanager_emoreact import create_dataframe, get_df_test, get_df_train, get_df_val
 
 output_window = None    # Used as screen variable to draw landmarks on
 last_timestamp_ms = 0   # needed by Mediapipe when in "LIVE_STREAM"-RunningMode
 frame = 0               # The current frame of the video, used to write pose data to csv
 
-analyzed_results = "frame,person,x,y,z\n"
+analyzed_results_person_0 = "frame,person,x,y,z\n"  # used to store pose data of the person with the id 0 in a conversation
+analyzed_results_person_1 = "frame,person,x,y,z\n"  # used to store pose data of the person with the id 0 in a conversation
 
-def write_pose_to_csv(person_id):
-    global analyzed_results
-    output_dir = f'/mnt/g/Abschlussarbeit_Datasets/CANDOR/processed_dataset/processed/fffda3e6-7d99-4db8-aa12-16e99fa454c2/processed'+ f'/pose_{person_id}.csv'
-    file = open(output_dir, 'a', newline='')
-    file.writelines(analyzed_results)
-    analyzed_results = ""
+def write_pose_to_csv(file_path, person_id):
+    """
+    Writes the pose data of the person with the id person_id to the
+    corresponding csv file. If no file exists, a new one is created. After
+    storing the data, the global pose variable gets overwritten with "" to
+    save memory and to speed up computation
+
+    Parameters:
+    file_path (String): the path of the video file whose pose data gets written
+    person_id (Integer): The id of the person in the conversation, whose data gets written. Can be 0 or 1
+
+    Returns:
+    Nothing
+    """
+    global analyzed_results_person_0
+    global analyzed_results_person_1
+    
+    # get the csv file name
+    splitted_path = file_path.split("/")
+    chars_to_cut_off = len(splitted_path[len(splitted_path)-1])
+    file_path = file_path[:-chars_to_cut_off]
+    file_name = file_path + splitted_path[len(splitted_path)-3]+ f"_posedata_{person_id}.csv"
+    
+    # actually write to the csv file
+    if os.path.isfile(file_name):
+        file = open(file_name, 'a', newline='')
+        if person_id == 0:
+            if analyzed_results_person_0.startswith("frame,person,x,y,z"):
+                analyzed_results_person_0 = analyzed_results_person_0.lstrip("frame,person,x,y,z\n")
+            file.writelines(analyzed_results_person_0)
+            analyzed_results_person_0 = ""
+        if person_id == 1:
+            if analyzed_results_person_1.startswith("frame,person,x,y,z"):
+                analyzed_results_person_1 = analyzed_results_person_1.lstrip("frame,person,x,y,z\n")
+            file.writelines(analyzed_results_person_1)
+            analyzed_results_person_1 = ""
+    else:
+        file = open(file_name, 'w', newline='')
+        if person_id == 0:
+            file.writelines(analyzed_results_person_0)
+            analyzed_results_person_0 = ""
+        if person_id == 1:
+            file.writelines(analyzed_results_person_1)
+            analyzed_results_person_1 = ""
     file.close()
     
 def detect_both_online(image):
@@ -58,12 +97,13 @@ def detect_both_online(image):
     else:
         return False
 
-def draw_landmarks(image, results):
+def draw_landmarks(image, person_id, results):
     """
     Draws landmarks on the given image using the results from pose estimation.
 
     Args:
         image (numpy.ndarray): The input image.
+        person_id (int): The ID of the person of the conversation whose video is processed. Can be 0 or 1 
         results (mediapipe.python.solution_base.SolutionOutputs): The pose estimation results.
 
     Returns:
@@ -75,16 +115,24 @@ def draw_landmarks(image, results):
     annotated_image = np.copy(image)
     global frame
 
-    global analyzed_results
+    global analyzed_results_person_0
+    global analyzed_results_person_1
+
     # draw poses on opencv window.
     for idx in range(len(pose_landmarks_list)):
-
         pose_landmarks = pose_landmarks_list[idx]
             
         # this is used to save found points for csv files
         for landmark in pose_landmarks:
-            new_row = f"{frame},{idx},{landmark.x},{landmark.y},{landmark.z}"
-            analyzed_results += ("\n"+new_row)
+            new_row = f"{frame},{person_id},{landmark.x},{landmark.y},{landmark.z}"
+            if person_id == 0:
+                if not analyzed_results_person_0.startswith("frame"):
+                    analyzed_results_person_0 += ("\n"+new_row)    
+                analyzed_results_person_0 += new_row
+            else:
+                if not analyzed_results_person_1.startswith("frame"):
+                    analyzed_results_person_1 += ("\n"+new_row)    
+                analyzed_results_person_1 += new_row
 
         pose_landmarks_proto = landmark_pb2.NormalizedLandmarkList()
 
@@ -102,35 +150,12 @@ def draw_landmarks(image, results):
     
     return annotated_image
 
-def print_result(detection_result: vision.PoseLandmarkerResult, output_image: mp.Image,
-                 timestamp_ms: int):
-    """
-    Gets called automatically by Mediapipe Pose Landmarker. Draws found landmarks to 
-    given image and returns it to global variable output_window
-
-    Args:
-        image (numpy.ndarray): The input image.
-        results: the output window has landmarks drawn on it.
-
-    """
-
-    global output_window
-    global last_timestamp_ms
-
-    if timestamp_ms < last_timestamp_ms:
-        return
-    last_timestamp_ms = timestamp_ms
-    
-    output_window = cv2.cvtColor(
-        draw_landmarks(output_image.numpy_view(), detection_result), cv2.COLOR_RGB2BGR)
-
-    #if RunningMode is VIDEO
-    return output_window
-
 
 def analyze_video(path):
     """
-    Analyzes a video file or webcam stream and detects human poses using MediaPipe Pose.
+    Analyzes a video file or webcam stream and detects human poses using MediaPipe Pose. 
+    First step is to get the id of that video in it's directory, i.e. if it is the video of
+    the first person or the second ( id = 0 or 1).
 
     Args:
         path (str): The path to the video file or '0' for webcam stream.
@@ -138,11 +163,14 @@ def analyze_video(path):
         None
     """
 
-    if path == '/mnt/g/Abschlussarbeit_Datasets/CANDOR/processed_dataset/processed/fffda3e6-7d99-4db8-aa12-16e99fa454c2/processed/5d5162f1b50a1000169da137.mp4':
+    # get id of the video, then delete the id ending for further processing
+    id_ending_split = path.split("_")
+    if id_ending_split[len(id_ending_split)-1] == "0":
         id = 0
     else:
         id = 1
-    print(f"Starting analysis of video {id}")
+    path = path[:-2]
+    print(f"Starting analysis of video {path}")
 
     with vision.PoseLandmarker.create_from_options(options) as landmarker:        
         cap = cv2.VideoCapture(path)
@@ -152,6 +180,15 @@ def analyze_video(path):
             success, image = cap.read()
             start_time = time.time()
             if not success:
+                
+                # create a "completed" file for pausing analysis of CANDOR dataset when movie file is over.    
+                if frame > 0:
+                    splitted_path = path.split("/")
+                    chars_to_cut_off = len(splitted_path[len(splitted_path)-1])
+                    completed_path = path[:-chars_to_cut_off]
+                    file_name = completed_path + "pose_extraction_of_" + "{splitted_path[len(splitted_path)-1]}".rstrip(".mp4") + "_completed"
+                    file = open(file_name, 'w', newline='')
+                    file.close()
                 break
             
             if not detect_both_online(image):
@@ -162,33 +199,21 @@ def analyze_video(path):
                 image_format=mp.ImageFormat.SRGB,
                 data=cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
             timestamp_ms = int(cv2.getTickCount() / cv2.getTickFrequency() * 1000)
-            
-            # if runningMode is LIVESTREAM
-                #landmarker.detect_async(mp_image, timestamp_ms)            
-                
-            #if RunningMode is VIDEO
             result = landmarker.detect_for_video(mp_image, timestamp_ms)
                       
             output_window = cv2.cvtColor(
-                draw_landmarks(image, result), cv2.COLOR_RGB2BGR)
-            # end of VIDEO RunningMode code
+                draw_landmarks(image, id, result), cv2.COLOR_RGB2BGR)
             
-            #if RunningMode is LIVESTREAM
-            #if output_window is not None:
-                #cv2.imshow("MediaPipe Pose Landmark", output_window)
-
-            #if RunningMode is VIDEO
             if output_window is not None:
                 cv2.imshow("MediaPipe Pose Landmark", output_window)
-
-
+            
             if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
+                return -1
 
             # write found pose data every x frames to corresponding csv file.
             # should be done more often since fps rate decreases      
             if frame%100 == 0:
-                write_pose_to_csv(id)
+                write_pose_to_csv(path, id)
   
             end_time = time.time()
             print(f"FPS of video {id}: {1.0 / (end_time-start_time)}")
@@ -211,15 +236,29 @@ def test_candor():
     uses multithreading to analyze each of the videos. In the end, a csv file for every participiant exists, with the found pose coordinates
     in every frame.
     """
-    all_files = get_all_movie_files()
+
+    # get a list of all videos that still have to be analyzed
+    #all_files = get_all_movie_files()
+    all_files = ["/mnt/g/Abschlussarbeit_Datasets/CANDOR/processed_dataset/processed/fffda3e6-7d99-4db8-aa12-16e99fa454c2/processed/5d5162f1b50a1000169da137.mp4",
+                 "/mnt/g/Abschlussarbeit_Datasets/CANDOR/processed_dataset/processed/fffda3e6-7d99-4db8-aa12-16e99fa454c2/processed/5977e3867412f8000194e1fe.mp4"]
     videolist = []
     for files_in_directory in all_files:
-        videolist.append(files_in_directory[0]+"0")
-        videolist.append(files_in_directory[1]+"1")
+        if all_files.index(files_in_directory)%2 == 0:
+            files_in_directory = files_in_directory + "_0"
+            videolist.append(files_in_directory)
+        else:
+            files_in_directory = files_in_directory + "_1"
+            videolist.append(files_in_directory)
     
-    print(videolist)
+    # start analyzing videos on video_list
+    videos_to_analyze = len(videolist)
+    print(f"{videos_to_analyze} videos still have to ba analyzed. Working...")
+    analyzed_videos = 0
     with concurrent.futures.ProcessPoolExecutor(max_workers=2) as executor:
-       executor.map(analyze_video,videolist)
+        for result in executor.map(analyze_video,videolist):
+            if result != -1:
+                analyzed_videos += 1
+                print(f"{analyzed_videos} out of {videos_to_analyze} videos hav been analyzed.")
 
     
 if __name__ == "__main__":
@@ -237,12 +276,11 @@ if __name__ == "__main__":
     base_options = python.BaseOptions(model_asset_path='./landmark_files/pose_landmarker_lite.task', delegate="GPU")
     options = vision.PoseLandmarkerOptions(
         base_options=base_options,
-        running_mode=vision.RunningMode.VIDEO,#LIVE_STREAM,
+        running_mode=vision.RunningMode.VIDEO,
         num_poses=1,
         min_pose_detection_confidence=0.7,
         min_pose_presence_confidence=0.7,
         min_tracking_confidence=0.8,
         output_segmentation_masks=False,
-        #result_callback=print_result   # only needed when RunningMode is LIVE_STREAM
     )
     test_candor()
