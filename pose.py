@@ -11,8 +11,9 @@ import torch
 import tensorflow as tf
 from threading import Thread
 import concurrent.futures
+from urllib.request import urlretrieve
 
-from datamanager_candor import get_all_movie_files
+#from datamanager_candor import get_all_movie_files
 #from datamanager_candor import get_biggest_files
 #from datamanager_emoreact import create_dataframe, get_df_test, get_df_train, get_df_val
 
@@ -22,6 +23,81 @@ frame = 0               # The current frame of the video, used to write pose dat
 
 analyzed_results_person_0 = "frame,person,x,y,z\n"  # used to store pose data of the person with the id 0 in a conversation
 analyzed_results_person_1 = "frame,person,x,y,z\n"  # used to store pose data of the person with the id 0 in a conversation
+
+
+def check_pose_landmark_file(landmark_type):
+    """
+    This function checks if the needed Mediapipe Pose estimation landmark files are available in the sub directory
+    '/landmark_files'. If not, they get downloaded from Mediapipe servers. 
+    More info on https://developers.google.com/mediapipe/solutions/vision/pose_landmarker
+
+    Parameters:
+    landmark_type (String): which of the current 3 models do you need for pose estimation. Can be 'lite', 'full' or 'heavy'
+
+    Returns:
+    The path to the file in string format
+    """
+
+    task_file_dir = './landmark_files/'
+    match landmark_type:
+        case 'lite':
+            if os.path.isfile(task_file_dir + 'pose_landmarker_lite.task'):
+                print("Mediapipe Pose Landmark file 'lite' already downloaded")
+                return task_file_dir + 'pose_landmarker_lite.task'
+            else:
+                print("Mediapipe Pose Landmark file 'lite' not yet downloaded. Downloading now into './landmark_files' sub directory.")
+                try:
+                    url = (
+                        "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task"
+                    )
+                    filename = task_file_dir + "pose_landmarker_lite.task"
+                    urlretrieve(url, filename)
+                    print("Downloading Mediapipe Pose Landmark file 'pose_landmarker_lite.task' successful")
+                    return task_file_dir + 'pose_landmarker_lite.task'
+                except Exception as e:
+                    print("An error occurred while downloading pose_landmarker_lite.task:")
+                    print(e)
+                    return -1
+        case 'full':
+            if os.path.isfile(task_file_dir + 'pose_landmarker_full.task'):
+                print("Mediapipe Pose Landmark file 'full' already downloaded")
+                return task_file_dir + 'pose_landmarker_full.task'
+            else:
+                print("Mediapipe Pose Landmark file 'full' not yet downloaded. Downloading now into './landmark_files' sub directory.")
+                try:
+                    url = (
+                        "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_full/float16/latest/pose_landmarker_full.task"
+                    )
+                    filename = task_file_dir + "pose_landmarker_full.task"
+                    urlretrieve(url, filename)
+                    print("Downloading Mediapipe Pose Landmark file 'pose_landmarker_full.task' successful")
+                    return task_file_dir + 'pose_landmarker_full.task'
+                except Exception as e:
+                    print("An error occurred while downloading pose_landmarker_full.task:")
+                    print(e)
+                    return -1
+        case 'heavy':
+            if os.path.isfile(task_file_dir + 'pose_landmarker_heavy.task'):
+                print("Mediapipe Pose Landmark file 'heavy' already downloaded")
+                return task_file_dir + 'pose_landmarker_heavy.task'
+            else:
+                print("Mediapipe Pose Landmark file 'heavy' not yet downloaded. Downloading now into './landmark_files' sub directory.")
+                try:
+                    url = (
+                        "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_heavy/float16/latest/pose_landmarker_heavy.task"
+                    )
+                    filename = task_file_dir + "pose_landmarker_heavy.task"
+                    urlretrieve(url, filename)
+                    print("Downloading Mediapipe Pose Landmark file 'pose_landmarker_heavy.task' successful")
+                    return task_file_dir + 'pose_landmarker_heavy.task'
+                except Exception as e:
+                    print("An error occurred while downloading pose_landmarker_heavy.task:")
+                    print(e)
+                    return -1
+        case _:
+            print("The given 'landmark_type' parameter is invalid. Can be 'lite', 'full' and 'heavy'") 
+            print("More information on https://developers.google.com/mediapipe/solutions/vision/pose_landmarker")
+            return -1
 
 def write_pose_to_csv(file_path, person_id):
     """
@@ -267,9 +343,12 @@ if __name__ == "__main__":
 
     #test_emoreact()
 
-
-    # landmark files available on https://developers.google.com/mediapipe/solutions/vision/pose_landmarker
-    base_options = python.BaseOptions(model_asset_path='./landmark_files/pose_landmarker_lite.task', delegate="GPU")
+    # test if Mediapipe landmark task file is available
+    landmark_type = 'lite'
+    landmark_path = check_pose_landmark_file(landmark_type)
+    print(landmark_path)
+    # define Mediapipe pose landmark detector's options
+    base_options = python.BaseOptions(model_asset_path=landmark_path, delegate="GPU")
     options = vision.PoseLandmarkerOptions(
         base_options=base_options,
         running_mode=vision.RunningMode.VIDEO,
@@ -279,4 +358,4 @@ if __name__ == "__main__":
         min_tracking_confidence=0.8,
         output_segmentation_masks=False,
     )
-    test_candor()
+    #test_candor()
