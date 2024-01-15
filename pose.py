@@ -126,14 +126,10 @@ def draw_landmarks(image, person_id, results):
         for landmark in pose_landmarks:
             new_row = f"{frame},{person_id},{landmark.x},{landmark.y},{landmark.z}"
             if person_id == 0:
-                if not analyzed_results_person_0.startswith("frame"):
-                    analyzed_results_person_0 += ("\n"+new_row)    
-                analyzed_results_person_0 += new_row
+                analyzed_results_person_0 += "\n" + new_row
             else:
-                if not analyzed_results_person_1.startswith("frame"):
-                    analyzed_results_person_1 += ("\n"+new_row)    
-                analyzed_results_person_1 += new_row
-
+                analyzed_results_person_1 += "\n" + new_row    
+                
         pose_landmarks_proto = landmark_pb2.NormalizedLandmarkList()
 
         pose_landmarks_proto.landmark.extend([
