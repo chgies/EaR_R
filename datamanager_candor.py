@@ -4,7 +4,9 @@ from dotenv import load_dotenv
 
 CANDOR_DIR = None
 load_dotenv()
-CANDOR_DIR = os.getenv("CANDOR_DIR")
+
+# Get CANDOR PATH variable and standardize it
+CANDOR_DIR = (os.getenv("CANDOR_DIR").replace("\\","/") + "/").replace("//","/")
 print(f"Candor directory: {CANDOR_DIR}")
 
 # def list all directories in a path

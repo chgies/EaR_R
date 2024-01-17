@@ -1,3 +1,0 @@
-- have a variable system for more than 2 Workers (analyzed_results_person_0 and _1 is great for 2 Processes in the same movie directory, but whaat if we wanna have more???) 
-- implement an info bar to show % of completeness
-- documentation
