@@ -5,23 +5,21 @@ from mediapipe.tasks.python import vision
 from mediapipe.framework.formats import landmark_pb2
 import numpy as np
 import time
-import csv
 import os
 from urllib.request import urlretrieve
 
-class PoseAnalyzer():
+class CANDORPoseAnalyzer():
 
     def __init__(self, video_path, landmark_type):
         self.output_window = None    # Used as screen variable to draw landmarks on
         self.last_timestamp_ms = 0   # needed by Mediapipe when in "LIVE_STREAM"-RunningMode
         
-        self.analyzed_results_person_0 = "frame,person,x,y,z\n"  # used to store pose data of the person with the id 0 in a conversation
-        self.analyzed_results_person_1 = "frame,person,x,y,z\n"  # used to store pose data of the person with the id 0 in a conversation
-
+        self.analyzed_results_person = "frame,person,x,y,z\n"  # used to store pose data of the person with the id 0 in a conversation
+        
         self.landmark_type = landmark_type
         self.landmark_options = self.create_landmark_options()
         self.video_path = video_path
-        
+        print(f"VIDEO PATH: {self.video_path}")
         self.analyze_video()
         
     def check_pose_landmark_file(self):
@@ -106,9 +104,9 @@ class PoseAnalyzer():
             base_options=base_options,
             running_mode=vision.RunningMode.VIDEO,
             num_poses=1,
-            min_pose_detection_confidence=0.7,
-            min_pose_presence_confidence=0.7,
-            min_tracking_confidence=0.8,
+            min_pose_detection_confidence=0.5,
+            min_pose_presence_confidence=0.5,
+            min_tracking_confidence=0.5,
             output_segmentation_masks=False,
         )
         return options
@@ -126,15 +124,6 @@ class PoseAnalyzer():
         """
         frame = 0
 
-       
-        # get id of the video, then delete the id ending for further processing
-        id_ending_split = self.video_path.split("_")
-        if id_ending_split[len(id_ending_split)-1] == "0":
-            id = 0
-        else:
-            id = 1
-        
-        self.video_path = self.video_path[:-2]
         print(f"Starting analysis of video {self.video_path}")
         
         with vision.PoseLandmarker.create_from_options(self.landmark_options) as landmarker:        
@@ -146,10 +135,11 @@ class PoseAnalyzer():
                     
                     # create a "completed" file for pausing analysis of CANDOR dataset when movie file is over.    
                     if frame > 0:
+                        self.write_pose_to_csv()
                         splitted_path = self.video_path.split("/")
                         chars_to_cut_off = len(splitted_path[len(splitted_path)-1])
                         completed_path = self.video_path[:-chars_to_cut_off]
-                        file_name = completed_path + "pose_extraction_of_" + "{splitted_path[len(splitted_path)-1]}".rstrip(".mp4") + "_completed"
+                        file_name = completed_path + "pose_extraction_of_" + f"{splitted_path[len(splitted_path)-1]}".rstrip(".mp4") + "_completed"
                         file = open(file_name, 'w', newline='')
                         file.close()
                     break
@@ -164,7 +154,7 @@ class PoseAnalyzer():
                 result = landmarker.detect_for_video(mp_image, self.timestamp_ms)
                         
                 self.output_window = cv2.cvtColor(
-                    self.draw_landmarks(frame, id, image, result), cv2.COLOR_RGB2BGR)
+                    self.draw_landmarks(frame, image, result), cv2.COLOR_RGB2BGR)
                 
                 if self.output_window is not None:
                     cv2.imshow("MediaPipe Pose Landmark", self.output_window)
@@ -174,14 +164,14 @@ class PoseAnalyzer():
 
                 # write found pose data every x frames to corresponding csv file.
                 # should be done more often since fps rate decreases      
-                if frame%100 == 0:
-                    self.write_pose_to_csv(id)
+                if frame%300 == 0:
+                    self.write_pose_to_csv()
     
                 end_time = time.time()
-                print(f"FPS of video {id}: {1.0 / (end_time-start_time)}")
+                print(f"FPS of video: {1.0 / (end_time-start_time)}")
                 frame += 1
 
-    def write_pose_to_csv(self, id):
+    def write_pose_to_csv(self):
         """
         Writes the pose data of the person with the id person_id to the
         corresponding csv file. If no file exists, a new one is created. After
@@ -189,40 +179,27 @@ class PoseAnalyzer():
         save memory and to speed up computation
 
         Parameters:
-        file_path (String): the path of the video file whose pose data gets written
-        person_id (Integer): The id of the person in the conversation, whose data gets written. Can be 0 or 1
-
+            Nothing
         Returns:
-        Nothing
+            Nothing
         """
 
         # get the csv file name
         splitted_path = self.video_path.split("/")
         chars_to_cut_off = len(splitted_path[len(splitted_path)-1])
         new_video_path = self.video_path[:-chars_to_cut_off]
-        file_name = new_video_path + splitted_path[len(splitted_path)-3]+ f"_posedata_{id}.csv"
-        
+        file_name = new_video_path + splitted_path[len(splitted_path)-1]+ f"_posedata.csv"
         # actually write to the csv file
         if os.path.isfile(file_name):
             file = open(file_name, 'a', newline='')
-            if id == 0:
-                if self.analyzed_results_person_0.startswith("frame,person,x,y,z"):
-                    self.analyzed_results_person_0 = self.analyzed_results_person_0.lstrip("frame,person,x,y,z\n")
-                file.writelines(self.analyzed_results_person_0)
-                self.analyzed_results_person_0 = ""
-            if id == 1:
-                if self.analyzed_results_person_1.startswith("frame,person,x,y,z"):
-                    self.analyzed_results_person_1 = self.analyzed_results_person_1.lstrip("frame,person,x,y,z\n")
-                file.writelines(self.analyzed_results_person_1)
-                self.analyzed_results_person_1 = ""
+            if self.analyzed_results_person.startswith("frame,person,x,y,z"):
+                self.analyzed_results_person = self.analyzed_results_person.lstrip("frame,person,x,y,z\n")
+            file.writelines(self.analyzed_results_person)
+            self.analyzed_results_person = ""
         else:
             file = open(file_name, 'w', newline='')
-            if id == 0:
-                file.writelines(self.analyzed_results_person_0)
-                self.analyzed_results_person_0 = ""
-            if id == 1:
-                file.writelines(self.analyzed_results_person_1)
-                self.analyzed_results_person_1 = ""
+            file.writelines(self.analyzed_results_person)
+            self.analyzed_results_person = ""
         file.close()
         
     def detect_both_online(self, image):
@@ -253,13 +230,13 @@ class PoseAnalyzer():
         else:
             return False
 
-    def draw_landmarks(self, frame, id, image, results):
+    def draw_landmarks(self, frame, image, results):
         """
         Draws landmarks on the given image using the results from pose estimation.
 
         Args:
             image (numpy.ndarray): The input image.
-            person_id (int): The ID of the person of the conversation whose video is processed. Can be 0 or 1 
+            frame (int): The current processed frame 
             results (mediapipe.python.solution_base.SolutionOutputs): The pose estimation results.
 
         Returns:
@@ -276,11 +253,8 @@ class PoseAnalyzer():
                 
             # this is used to save found points for csv files
             for landmark in pose_landmarks:
-                new_row = f"{frame},{id},{landmark.x},{landmark.y},{landmark.z}"
-                if id == 0:
-                    self.analyzed_results_person_0 += "\n" + new_row
-                else:
-                    self.analyzed_results_person_1 += "\n" + new_row    
+                new_row = f"{frame},{idx},{landmark.x},{landmark.y},{landmark.z}"
+                self.analyzed_results_person += "\n" + new_row    
                     
             pose_landmarks_proto = landmark_pb2.NormalizedLandmarkList()
 
