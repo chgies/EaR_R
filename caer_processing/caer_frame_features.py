@@ -4,8 +4,9 @@ Instances of this class are handled by feature_extraction class
 """
 import pandas as pd
 from scipy.spatial import distance
-
-class Frame_Features:
+from shapely.geometry import Polygon
+from shapely import Point
+class CAER_Frame_Features:
 
     def __init__(self, frame):
         self.frame = frame
@@ -82,74 +83,84 @@ class Frame_Features:
             points_array.append(new_point)
        # print(points_array)
         
+        ##### calculating necessary f points as mentioned in ./references/Feature_Tabellen.pdf
+
         # f1 is feet to hips distance, avg of both sides
         self.f1 = (distance.euclidean(points_array[28],points_array[24]) + distance.euclidean(points_array[27],points_array[23]))/2
-        # f2 is hand to shoulders distance, avg of both sides
-        self.f2 = (distance.euclidean(points_array[12],points_array[20]) + distance.euclidean(points_array[11],points_array[19]))/2
         # f3 is rhand to lhand distance
         self.f3 = distance.euclidean(points_array[20],points_array[19])
         # f4 is hands to head distance, avg of both sides
         self.f4 = (distance.euclidean(points_array[20],points_array[0]) + distance.euclidean(points_array[19],points_array[0]))/2
-        
-        print(f"f1 on frame {self.frame}: {self.f1}")
-        print(f"f2 on frame {self.frame}: {self.f2}")
-        print(f"f3 on frame {self.frame}: {self.f3}")
-        print(f"f4 on frame {self.frame}: {self.f4}")
-
         # f5 is pelvis height, distance of pelvis to ground
-        # use middle points of ankkles as ground and hips as pelvis
+        # use middle points of ankles as ground and hips as pelvis
         ankle_midpoint = (((points_array[28][0]+points_array[28][0])/2), ((points_array[28][1]+points_array[28][1])/2), ((points_array[28][2]+points_array[28][2])/2))
         pelvis_position = (((points_array[24][0]+points_array[23][0])/2), ((points_array[24][1]+points_array[23][1])/2), ((points_array[24][2]+points_array[23][2])/2))
         self.f5 = distance.euclidean(ankle_midpoint, pelvis_position)
-
-        # f6 is different displacements of legs on ground, avg of both sides
-        avg_displacements_left = (points_array[26][1] + points_array[28][1])
-        self.f6 = ""
-        
-        # f7 is distance of ground and centroid
-        self.f7 = ""
-        # f8 is centroid and pelvis distance
-        self.f8 = ""
-        # f9 is right to left foot distance
-        self.f9 = ""
-        """
         # f10 is angle between head orientation and body path (trajectory of pelvis)
         self.f10 = 
+        -> Head orientation messen: ob Abstand Auge-Nase l und r sich ändert?
         # f11 is deceleration of pelvis
+        -> needs former frame position of pelvis
         self.f11 = 
         # f12 is distance of pelvis over time period
+        -> needs former frame position of pelvis
         self.f12 = 
         # f13 is avg velocity of hands
+        -> needs former frame position of hands
         self.f13 = 
-        # f14 is avg velocity of feet        
-        self.f14 = 
         # f15 is derivative of hands velocities with respect to time
+        -> solve f13 first
         self.f15 = 
-        # f16 is derivative of feet velocities with respect to time
-        self.f16 = 
-        # f17 is derivative of hips velocities with respect to time
-        self.f17 = 
         # f18 is derivative of f15 velocities with respect to time
+        -> solve f15 first
         self.f18 = 
         # f19 is bounding volume of all joints
         self.f19 = 
+        Punkte: 0 (Gesicht)
+        - Wenn Hände weiter außen als schultern:
+            - wenn hand über schulter, dann 0 - 16/15
+            - sonst 0-12-16/0-11-15
+        - sonst:
+            - wenn hand über schulter, dann 0 - 16/15
+            - sonst 0-12/0-16
+        -> max x max y minx miny punkte, 
+        -> polygon aus diesen Punkten
+        -> prüfen ob andere Punkte in diesem Polygon: Wenn nein, dann mit einschließen?
+        -> shapely.Polygon.area
         # f20 is volume of upper body
         self.f20 = 
-        # f21 is volume of lower body
-        self.f21 = 
+        -> selbe wie f19
         # f22 is volume of left side
         self.f22 = 
+        -> ähnlich f19
         # f23 is volume of right side
         self.f23 = 
+        -> ähnlich f19
         # f24 is distance head to root joint
-        self.f24 = 
-        # f25 is relation of hand's position to body
+        pelvis_position = (((points_array[24][0]+points_array[23][0])/2), ((points_array[24][1]+points_array[23][1])/2), ((points_array[24][2]+points_array[23][2])/2))
+        self.f24 = distance(pelvis_position, points_array[0])
+   
+        # f25 is relation of hand's position to body       
         self.f25 = 
-        # f26 is length of projection of pelvis joints
-        self.f26 = 
-        # f27 is area of polygon formed by projection of pelvis on ground
-        self.f27 = 
-"""
+
+        print(f"f1 on frame {self.frame}: {self.f1}")
+        print(f"f3 on frame {self.frame}: {self.f3}")
+        print(f"f4 on frame {self.frame}: {self.f4}")
+        print(f"f5 on frame {self.frame}: {self.f5}")
+        """
+        print(f"f10 on frame {self.frame}: {self.f10}")
+        print(f"f11 on frame {self.frame}: {self.f11}")
+        print(f"f12 on frame {self.frame}: {self.f12}")
+        print(f"f13 on frame {self.frame}: {self.f13}")
+        print(f"f15 on frame {self.frame}: {self.f15}")
+        print(f"f18 on frame {self.frame}: {self.f18}")
+        print(f"f19 on frame {self.frame}: {self.f19}")
+        print(f"f20 on frame {self.frame}: {self.f20}")
+        print(f"f22 on frame {self.frame}: {self.f22}")
+        print(f"f23 on frame {self.frame}: {self.f23}")
+        print(f"f24 on frame {self.frame}: {self.f24}")
+        print(f"f25 on frame {self.frame}: {self.f25}")
+        """
 
     ### Getter and Setter methods
         

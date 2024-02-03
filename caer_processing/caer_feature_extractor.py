@@ -14,10 +14,10 @@ Nächste Schritte:
                 2. als labels nutzen für ein NN, dass mit Koordinaten eines Frames und den
                    Labels trainiert wird
                 3. Profit
-                4. Mit diesem Netz wird dann ein 2. Netz trainiert, das mit Emotionen funktioniert?
+                4. Mit diesem Netz wird dann ein 2. Netz trainiert, das mit Emotionen funktioniert? Dennis fragen
 """
 import pandas as pd
-from frame_features import Frame_Features
+from caer_frame_features import CAER_Frame_Features
 
 class CAER_Feature_Extractor:
     def __init__(self, path_to_csv_file):
@@ -39,10 +39,10 @@ class CAER_Feature_Extractor:
         frame_size = int(self.csv_data['frame'].iloc[-1])
         for frame_index in range(0,frame_size +1):
             #print(self.csv_data.loc[self.csv_data['frame'] == frame_index])
-            feature_object = Frame_Features(frame_index)
+            feature_object = CAER_Frame_Features(frame_index)
             feature_object.load_dataframe(self.csv_data.loc[self.csv_data['frame'] == frame_index])
             self.frame_feature_array.append(feature_object)
         
         #self.calc_laban_elements()
 
-caer_feature_extractor = CAER_Feature_Extractor("./0001.avi_posedata.csv")
+caer_feature_extractor = CAER_Feature_Extractor("caer_processing/CAER_pose_example.csv")
