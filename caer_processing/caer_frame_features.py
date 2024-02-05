@@ -116,17 +116,9 @@ class CAER_Frame_Features:
         self.f18 = 
         # f19 is bounding volume of all joints
         self.f19 = 
-        Punkte: 0 (Gesicht)
-        - Wenn Hände weiter außen als schultern:
-            - wenn hand über schulter, dann 0 - 16/15
-            - sonst 0-12-16/0-11-15
-        - sonst:
-            - wenn hand über schulter, dann 0 - 16/15
-            - sonst 0-12/0-16
-        -> max x max y minx miny punkte, 
-        -> polygon aus diesen Punkten
-        -> prüfen ob andere Punkte in diesem Polygon: Wenn nein, dann mit einschließen?
-        -> shapely.Polygon.area
+        
+        -> Funktion geschrieben, Liste erarbeiten und einfügen
+
         # f20 is volume of upper body
         self.f20 = 
         -> selbe wie f19
@@ -161,6 +153,112 @@ class CAER_Frame_Features:
         print(f"f24 on frame {self.frame}: {self.f24}")
         print(f"f25 on frame {self.frame}: {self.f25}")
         """
+
+
+    def sort_joint_points_by_value(self, value_to_sort, points_list):
+        """
+        Sorts given points in list by value using BubbleSort algorithm
+
+        Arguments:
+            value_to_sort (String): which value should be used to sort. Can be "x","Y" or "z"
+            points_list: List of body joint points with x,y,z coordinates
+        
+        Returns:
+            points_list (list): the sorted list
+        """
+
+        if value_to_sort == "x":
+            value_index = 0
+        elif value_to_sort == "y":
+            value_index = 1
+        elif value_to_sort == "z":
+            value_index = 2
+
+        for round in range(len(points_list)-1,0,-1):
+            for index in range(round):
+                if points_list[index][value_index] > points_list[index+1][value_index]:
+                    temp = points_list[index]
+                    points_list[index] = points_list[index+1]
+                    points_list[index+1] = temp
+
+        return points_list
+
+    def calculate_area_of_upper_body(self, side, points_list):
+        """
+        Calculates the area of one side of the upper body. Uses the x and y values of body joint points found by  MediaPipe pose landmarker.
+        
+        Arguments:
+            side (String): which side of the body is calculated, as seen from the camera. Can be "left" and "right".
+            body_points (List of tuples): a list of found joint points. For a correct calculation, the list needs to include all upper body points left or right of the nose point and the pelvis, i.e. nose, shoulder(s), elbow(s), wrist(s), hip(s), pelvis.
+                                        The first element of this list needs to be the nose (Point 0), se second the pelvis(middle of the two hip points)
+        Returns:
+            body_area (float): The calculated area of all given points.
+        """
+
+
+        sorted_x_axis_list = self.sort_joint_points_by_value("x", points_list)						
+        sorted_y_axis_list = self.sort_joint_points_by_value("y", points_list)						
+        free_points_list = points_list[2:]
+            
+                                
+        polygon_path_forth= points_list[points_list[0]]						
+        polygon_path_back = [points_list[len(points_list)-1]]						
+        for x_index in range(sorted_x_axis_list.index(points_list[1]), 0):						
+            
+            # if point on the left of the current point is beneath the "nose" point, add it to the path 					
+            if sorted_y_axis_list.index(sorted_x_axis_list.index(x_index)) <= sorted_y_axis_list.index(sorted_x_axis_list.index(points_list[0])):					
+                polygon_path_forth.append(sorted_x_axis_list.index(x_index))				
+                free_points_list.remove(sorted_x_axis_list.index(x_index))				
+            # if it is above the face point, remove all smaller former points till the next point above or the nose from the path					
+            else:					
+                polygon_path_forth.append(sorted_x_axis_list.index(x_index))				
+                free_points_list.remove(sorted_x_axis_list.index(x_index))				
+                                
+                for point in polygon_path_forth:				
+                    if point != points_list[0]:			
+                        if point !=sorted_x_axis_list.index(x_index):		
+                            if point.y < sorted_x_axis_list.index(x_index).y:	
+                                polygon_path_forth.remove(point)
+                                free_points_list.add(point)
+                            else:
+                                break
+                        else:		
+                            break	
+                                
+                                
+        # Walking to the upper left point finished, now wandering down to the right till we get to th pelvis						
+        polygon_path_back.append(polygon_path_forth.index(len(polygon_path_forth)-1))						
+        for x_index in range(0, sorted_x_axis_list.index(points_list[1])):					
+                             					
+            # if the current point is above the last, add it to the path.					
+            if free_points_list.contains(sorted_x_axis_list.element(x_index)) and sorted_y_axis_list.index(sorted_x_axis_list.element(x_index)) <= sorted_y_axis_list.index(polygon_path_back[0]):					
+                polygon_path_back.append(sorted_x_axis_list.element(x_index))				
+                free_points_list.remove(sorted_x_axis_list.element(x_index))
+
+            # if it is beneath , all former points that are above this point and not the first one, will be deleted							
+            else:					
+                polygon_path_back.append(sorted_x_axis_list.element(x_index))				
+                free_points_list.remove(sorted_x_axis_list.element(x_index))				
+                                
+                for point in polygon_path_back:				
+                    if polygon_path_back.index(point) !=0:			
+                        if point != sorted_x_axis_list.element(x_index):		
+                            if point.y > sorted_x_axis_list.element(x_index).y:	
+                                polygon_path_back.remove(point)
+                                free_points_list.add(point)
+                            else:
+                                break
+                        else:		
+                            break	
+
+        polygon_path_back.append(points_list[1])
+
+        # alle Punkte erreicht, jetzt beide listen zu Polygon verbinden und Volumen berechnen						
+        full_polygon_path = polygon_path_forth + polygon_path_back						
+        polygon = Polygon(full_polygon_path)						
+        volume = polygon.area						
+        return volume
+
 
     ### Getter and Setter methods
         
