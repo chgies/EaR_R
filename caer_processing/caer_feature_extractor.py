@@ -17,9 +17,9 @@ Nächste Schritte:
                 4. Mit diesem Netz wird dann ein 2. Netz trainiert, das mit Emotionen funktioniert? Dennis fragen
 """
 import pandas as pd
-from caer_frame_features import CAER_Frame_Features
+from caer_processing.caer_frame_features import CAERFrameFeatures
 
-class CAER_Feature_Extractor:
+class CAERFeatureExtractor:
     def __init__(self, path_to_csv_file):
         self.path_to_csv_file = path_to_csv_file
         self.frame_feature_array = []
@@ -39,10 +39,10 @@ class CAER_Feature_Extractor:
         frame_size = int(self.csv_data['frame'].iloc[-1])
         for frame_index in range(0,frame_size +1):
             #print(self.csv_data.loc[self.csv_data['frame'] == frame_index])
-            feature_object = CAER_Frame_Features(frame_index)
+            feature_object = CAERFrameFeatures(frame_index)
             feature_object.load_dataframe(self.csv_data.loc[self.csv_data['frame'] == frame_index])
             self.frame_feature_array.append(feature_object)
         
-        #self.calc_laban_elements()
+        self.calc_laban_elements()
 
-caer_feature_extractor = CAER_Feature_Extractor("caer_processing/CAER_pose_example.csv")
+caer_feature_extractor = CAERFeatureExtractor("caer_processing/CAER_pose_example.csv")

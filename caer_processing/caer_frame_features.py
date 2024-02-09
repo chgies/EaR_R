@@ -2,11 +2,10 @@
 This class contains all the important motion features of a video frame
 Instances of this class are handled by feature_extraction class
 """
-import pandas as pd
 from scipy.spatial import distance
 from shapely.geometry import Polygon
 from shapely import Point
-class CAER_Frame_Features:
+class CAERFrameFeatures:
 
     def __init__(self, frame):
         self.frame = frame
@@ -93,47 +92,47 @@ class CAER_Frame_Features:
         self.f4 = (distance.euclidean(points_array[20],points_array[0]) + distance.euclidean(points_array[19],points_array[0]))/2
         # f5 is pelvis height, distance of pelvis to ground
         # use middle points of ankles as ground and hips as pelvis
-        ankle_midpoint = (((points_array[28][0]+points_array[28][0])/2), ((points_array[28][1]+points_array[28][1])/2), ((points_array[28][2]+points_array[28][2])/2))
-        pelvis_position = (((points_array[24][0]+points_array[23][0])/2), ((points_array[24][1]+points_array[23][1])/2), ((points_array[24][2]+points_array[23][2])/2))
+        ankle_midpoint = (((points_array[28][0] + points_array[28][0])/2), ((points_array[28][1] + points_array[28][1])/2), ((points_array[28][2] + points_array[28][2])/2))
+        pelvis_position = (((points_array[24][0] + points_array[23][0])/2), ((points_array[24][1] + points_array[23][1])/2), ((points_array[24][2] + points_array[23][2])/2))
         self.f5 = distance.euclidean(ankle_midpoint, pelvis_position)
         # f10 is angle between head orientation and body path (trajectory of pelvis)
-        self.f10 = 
-        -> Head orientation messen: ob Abstand Auge-Nase l und r sich ändert?
+        self.f10 = ""
+            #-> Head orientation messen: ob Abstand Auge-Nase l und r sich ändert?
         # f11 is deceleration of pelvis
-        -> needs former frame position of pelvis
-        self.f11 = 
+            #-> needs former frame position of pelvis
+        self.f11 = ""
         # f12 is distance of pelvis over time period
-        -> needs former frame position of pelvis
-        self.f12 = 
+            #-> needs former frame position of pelvis
+        self.f12 = ""
         # f13 is avg velocity of hands
-        -> needs former frame position of hands
-        self.f13 = 
+            #-> needs former frame position of hands
+        self.f13 = ""
         # f15 is derivative of hands velocities with respect to time
-        -> solve f13 first
-        self.f15 = 
+            #-> solve f13 first
+        self.f15 = ""
         # f18 is derivative of f15 velocities with respect to time
-        -> solve f15 first
-        self.f18 = 
+            #-> solve f15 first
+        self.f18 = ""
         # f19 is bounding volume of all joints
-        self.f19 = 
+        self.f19 = ""
         
-        -> Funktion geschrieben, Liste erarbeiten und einfügen
+            #-> Funktion geschrieben, Liste erarbeiten und einfügen
 
         # f20 is volume of upper body
-        self.f20 = 
-        -> selbe wie f19
+        self.f20 = ""
+            #-> selbe wie f19
         # f22 is volume of left side
-        self.f22 = 
-        -> ähnlich f19
+        upper_body_points_list = points_array[0], pelvis_position, points_array[12], points_array[11], points_array[14], points_array[13], points_array[16], points_array[15], points_array[23], points_array[24]
+        self.f22 = self.calculate_area_of_upper_body("left", upper_body_points_list)
+            #-> ähnlich f19
         # f23 is volume of right side
-        self.f23 = 
-        -> ähnlich f19
+        self.f23 = ""
+            #-> ähnlich f19
         # f24 is distance head to root joint
-        pelvis_position = (((points_array[24][0]+points_array[23][0])/2), ((points_array[24][1]+points_array[23][1])/2), ((points_array[24][2]+points_array[23][2])/2))
-        self.f24 = distance(pelvis_position, points_array[0])
+        self.f24 = distance.euclidean(points_array[0], pelvis_position)
    
         # f25 is relation of hand's position to body       
-        self.f25 = 
+        self.f25 = ""
 
         print(f"f1 on frame {self.frame}: {self.f1}")
         print(f"f3 on frame {self.frame}: {self.f3}")
@@ -155,7 +154,7 @@ class CAER_Frame_Features:
         """
 
 
-    def sort_joint_points_by_value(self, value_to_sort, points_list):
+    def sort_joint_points_by_value(self, value_to_sort, list_of_point_tuples):
         """
         Sorts given points in list by value using BubbleSort algorithm
 
@@ -174,14 +173,15 @@ class CAER_Frame_Features:
         elif value_to_sort == "z":
             value_index = 2
 
-        for round in range(len(points_list)-1,0,-1):
+        points_as_list = list(list_of_point_tuples)
+        for round in range(len(points_as_list)-1,0,-1):
             for index in range(round):
-                if points_list[index][value_index] > points_list[index+1][value_index]:
-                    temp = points_list[index]
-                    points_list[index] = points_list[index+1]
-                    points_list[index+1] = temp
+                if points_as_list[index][value_index] > points_as_list[index+1][value_index]:
+                    temp = points_as_list[index]
+                    points_as_list[index] = points_as_list[index+1]
+                    points_as_list[index+1] = temp
 
-        return points_list
+        return points_as_list
 
     def calculate_area_of_upper_body(self, side, points_list):
         """
@@ -195,61 +195,60 @@ class CAER_Frame_Features:
             body_area (float): The calculated area of all given points.
         """
 
-
         sorted_x_axis_list = self.sort_joint_points_by_value("x", points_list)						
         sorted_y_axis_list = self.sort_joint_points_by_value("y", points_list)						
-        free_points_list = points_list[2:]
-            
-                                
-        polygon_path_forth= points_list[points_list[0]]						
-        polygon_path_back = [points_list[len(points_list)-1]]						
-        for x_index in range(sorted_x_axis_list.index(points_list[1]), 0):						
-            
-            # if point on the left of the current point is beneath the "nose" point, add it to the path 					
-            if sorted_y_axis_list.index(sorted_x_axis_list.index(x_index)) <= sorted_y_axis_list.index(sorted_x_axis_list.index(points_list[0])):					
-                polygon_path_forth.append(sorted_x_axis_list.index(x_index))				
-                free_points_list.remove(sorted_x_axis_list.index(x_index))				
-            # if it is above the face point, remove all smaller former points till the next point above or the nose from the path					
-            else:					
-                polygon_path_forth.append(sorted_x_axis_list.index(x_index))				
-                free_points_list.remove(sorted_x_axis_list.index(x_index))				
-                                
-                for point in polygon_path_forth:				
-                    if point != points_list[0]:			
-                        if point !=sorted_x_axis_list.index(x_index):		
-                            if point.y < sorted_x_axis_list.index(x_index).y:	
-                                polygon_path_forth.remove(point)
-                                free_points_list.add(point)
-                            else:
-                                break
-                        else:		
-                            break	
-                                
-                                
+        unused_points_list = list(points_list[2:])
+        polygon_path_forth = [points_list[0]]
+        polygon_path_back = []						
+        for x_index in range(sorted_x_axis_list.index(points_list[1])-1,-1, -1):						
+            if sorted_x_axis_list[x_index] in unused_points_list:
+                # if point on the left of the current point is beneath the "nose" point, add it to the path 					
+                print(sorted_y_axis_list.index(sorted_x_axis_list[x_index]))
+                if sorted_y_axis_list.index(sorted_x_axis_list[x_index]) < sorted_y_axis_list.index(points_list[0]):					
+                    polygon_path_forth.append(sorted_x_axis_list[x_index])				
+                    unused_points_list.remove(sorted_x_axis_list[x_index])				
+                # if it is above the face point, remove all smaller former points till the next point above or the nose from the path					
+                else:					
+                    polygon_path_forth.append(sorted_x_axis_list[x_index])				
+                    unused_points_list.remove(sorted_x_axis_list[x_index])				
+                                    
+                    for point in polygon_path_forth:				
+                        if point != points_list[0]:			
+                            if point != sorted_x_axis_list[x_index]:		
+                                if sorted_y_axis_list.index(point) < sorted_y_axis_list.index(sorted_x_axis_list[x_index]):	
+                                    polygon_path_forth.remove(point)
+                                    unused_points_list.add(point)
+                                else:
+                                    break
+                            else:		
+                                break	
+                                               
         # Walking to the upper left point finished, now wandering down to the right till we get to th pelvis						
-        polygon_path_back.append(polygon_path_forth.index(len(polygon_path_forth)-1))						
+        #polygon_path_back.append(polygon_path_forth[len(polygon_path_forth)-1])						
         for x_index in range(0, sorted_x_axis_list.index(points_list[1])):					
-                             					
-            # if the current point is above the last, add it to the path.					
-            if free_points_list.contains(sorted_x_axis_list.element(x_index)) and sorted_y_axis_list.index(sorted_x_axis_list.element(x_index)) <= sorted_y_axis_list.index(polygon_path_back[0]):					
-                polygon_path_back.append(sorted_x_axis_list.element(x_index))				
-                free_points_list.remove(sorted_x_axis_list.element(x_index))
+            if sorted_x_axis_list[x_index] in unused_points_list:                 					
+                # if the current point is above the last, add it to the path.					
+                if sorted_y_axis_list.index(sorted_x_axis_list[x_index]) < sorted_y_axis_list.index(polygon_path_back[0]):					
+                    polygon_path_back.append(sorted_x_axis_list[x_index])		
+                    unused_points_list.remove(sorted_x_axis_list[x_index])
 
-            # if it is beneath , all former points that are above this point and not the first one, will be deleted							
-            else:					
-                polygon_path_back.append(sorted_x_axis_list.element(x_index))				
-                free_points_list.remove(sorted_x_axis_list.element(x_index))				
-                                
-                for point in polygon_path_back:				
-                    if polygon_path_back.index(point) !=0:			
-                        if point != sorted_x_axis_list.element(x_index):		
-                            if point.y > sorted_x_axis_list.element(x_index).y:	
-                                polygon_path_back.remove(point)
-                                free_points_list.add(point)
-                            else:
-                                break
-                        else:		
-                            break	
+                # if it is beneath , all former points that are above this point and not the first one, will be deleted							
+                else:					
+                    polygon_path_back.append(sorted_x_axis_list[x_index])				
+                    unused_points_list.remove(sorted_x_axis_list[x_index])				
+                                    
+                    for point in polygon_path_back:				
+                        if polygon_path_back.index(point) !=0:			
+                            if point != sorted_x_axis_list[x_index]:
+                                print(point)
+                                print(sorted_x_axis_list[x_index])		
+                                if point[1] > sorted_y_axis_list.index(sorted_y_axis_list[x_index]):	
+                                    polygon_path_back.remove(point)
+                                    unused_points_list.append(point)
+                                else:
+                                    break
+                            else:		
+                                break	
 
         polygon_path_back.append(points_list[1])
 
