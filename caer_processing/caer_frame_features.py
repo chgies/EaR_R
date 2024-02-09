@@ -118,16 +118,19 @@ class CAERFrameFeatures:
         
             #-> Funktion geschrieben, Liste erarbeiten und einfügen
 
-        # f20 is volume of upper body
-        self.f20 = ""
-            #-> selbe wie f19
-        # f22 is volume of left side
         upper_body_points_list = points_array[0], pelvis_position, points_array[12], points_array[11], points_array[14], points_array[13], points_array[16], points_array[15], points_array[23], points_array[24]
+        # f22 is volume of left side
         self.f22 = self.calculate_area_of_upper_body("left", upper_body_points_list)
-            #-> ähnlich f19
         # f23 is volume of right side
-        self.f23 = ""
-            #-> ähnlich f19
+        self.f23 = self.calculate_area_of_upper_body("right", upper_body_points_list)
+        # f20 is volume of upper body
+        self.f20 = self.f22 + self.f23
+
+        """
+            ToDo: think about how volume can be used: can become smaller if left volume
+            is bigger, bc. mediapipe point coordinates are often lower than 1.0
+        """
+
         # f24 is distance head to root joint
         self.f24 = distance.euclidean(points_array[0], pelvis_position)
    
@@ -146,9 +149,11 @@ class CAERFrameFeatures:
         print(f"f15 on frame {self.frame}: {self.f15}")
         print(f"f18 on frame {self.frame}: {self.f18}")
         print(f"f19 on frame {self.frame}: {self.f19}")
+        """
         print(f"f20 on frame {self.frame}: {self.f20}")
         print(f"f22 on frame {self.frame}: {self.f22}")
         print(f"f23 on frame {self.frame}: {self.f23}")
+        """
         print(f"f24 on frame {self.frame}: {self.f24}")
         print(f"f25 on frame {self.frame}: {self.f25}")
         """
@@ -183,7 +188,7 @@ class CAERFrameFeatures:
 
         return points_as_list
 
-    def calculate_area_of_upper_body(self, side, points_list):
+    def calculate_area_of_upper_body(self, side_to_calculate, points_list):
         """
         Calculates the area of one side of the upper body. Uses the x and y values of body joint points found by  MediaPipe pose landmarker.
         
@@ -199,8 +204,16 @@ class CAERFrameFeatures:
         sorted_y_axis_list = self.sort_joint_points_by_value("y", points_list)						
         unused_points_list = list(points_list[2:])
         polygon_path_forth = [points_list[0]]
-        polygon_path_back = []						
-        for x_index in range(sorted_x_axis_list.index(points_list[1])-1,-1, -1):						
+        polygon_path_back = []		
+        if side_to_calculate == 'left':
+            range_start = sorted_x_axis_list.index(points_list[1])-1
+            range_stop = -1
+            range_step = -1
+        else:
+            range_start = sorted_x_axis_list.index(points_list[1])-1
+            range_stop = len(sorted_x_axis_list)-1
+            range_step = 1
+        for x_index in range(range_start, range_stop, range_step):						
             if sorted_x_axis_list[x_index] in unused_points_list:
                 # if point on the left of the current point is beneath the "nose" point, add it to the path 					
                 print(sorted_y_axis_list.index(sorted_x_axis_list[x_index]))
@@ -211,21 +224,28 @@ class CAERFrameFeatures:
                 else:					
                     polygon_path_forth.append(sorted_x_axis_list[x_index])				
                     unused_points_list.remove(sorted_x_axis_list[x_index])				
-                                    
                     for point in polygon_path_forth:				
                         if point != points_list[0]:			
                             if point != sorted_x_axis_list[x_index]:		
                                 if sorted_y_axis_list.index(point) < sorted_y_axis_list.index(sorted_x_axis_list[x_index]):	
                                     polygon_path_forth.remove(point)
-                                    unused_points_list.add(point)
+                                    unused_points_list.append(point)
                                 else:
                                     break
                             else:		
                                 break	
                                                
         # Walking to the upper left point finished, now wandering down to the right till we get to th pelvis						
-        #polygon_path_back.append(polygon_path_forth[len(polygon_path_forth)-1])						
-        for x_index in range(0, sorted_x_axis_list.index(points_list[1])):					
+        polygon_path_back.append(polygon_path_forth[len(polygon_path_forth)-1])						
+        if side_to_calculate == 'left':
+            range_start = 0
+            range_stop = sorted_x_axis_list.index(points_list[1])
+            range_step = 1
+        else:
+            range_start = len(sorted_x_axis_list)-1
+            range_stop = sorted_x_axis_list.index(points_list[1])
+            range_step = -1
+        for x_index in range(range_start, range_stop, range_step):					
             if sorted_x_axis_list[x_index] in unused_points_list:                 					
                 # if the current point is above the last, add it to the path.					
                 if sorted_y_axis_list.index(sorted_x_axis_list[x_index]) < sorted_y_axis_list.index(polygon_path_back[0]):					
@@ -240,8 +260,6 @@ class CAERFrameFeatures:
                     for point in polygon_path_back:				
                         if polygon_path_back.index(point) !=0:			
                             if point != sorted_x_axis_list[x_index]:
-                                print(point)
-                                print(sorted_x_axis_list[x_index])		
                                 if point[1] > sorted_y_axis_list.index(sorted_y_axis_list[x_index]):	
                                     polygon_path_back.remove(point)
                                     unused_points_list.append(point)
@@ -252,8 +270,8 @@ class CAERFrameFeatures:
 
         polygon_path_back.append(points_list[1])
 
-        # alle Punkte erreicht, jetzt beide listen zu Polygon verbinden und Volumen berechnen						
-        full_polygon_path = polygon_path_forth + polygon_path_back						
+        # reached all points, now adding both paths together and create polygon						
+        full_polygon_path = polygon_path_forth + polygon_path_back[1:]						
         polygon = Polygon(full_polygon_path)						
         volume = polygon.area						
         return volume

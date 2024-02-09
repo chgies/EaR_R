@@ -23,7 +23,9 @@ class MyTestCase(unittest.TestCase):
 
     def test_volume_calculation(self):
         
-        result_volume = self.feature_object.calculate_area_of_upper_body("left",self.test_points)
-        self.assertEqual(result_volume,22.5)
+        left_volume = self.feature_object.calculate_area_of_upper_body("left", self.test_points)
+        right_volume = self.feature_object.calculate_area_of_upper_body("right", self.test_points)
+        self.assertEqual(left_volume,22.5)
+        self.assertEqual(right_volume, 6.0)
 
     pass
