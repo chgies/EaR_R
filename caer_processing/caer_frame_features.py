@@ -4,7 +4,6 @@ Instances of this class are handled by feature_extraction class
 """
 from scipy.spatial import distance
 from shapely.geometry import Polygon
-from shapely import Point
 class CAERFrameFeatures:
 
     def __init__(self, frame):
@@ -31,6 +30,9 @@ class CAERFrameFeatures:
         self.f16 = (0.0, 0.0, 0.0)
         self.f17 = (0.0, 0.0, 0.0)
         self.f18 = (0.0, 0.0, 0.0)
+        self.pelvis_position = (0.0, 0.0, 0.0)
+        self.lhand_position = (0.0, 0.0, 0.0)
+        self.rhand_position = (0.0, 0.0, 0.0)
 
         # Shape components
         self.f19 = (0.0, 0.0, 0.0)
@@ -73,7 +75,20 @@ class CAERFrameFeatures:
         self.hands_to_head_backing = 0.0
         self.hands_up_backing = 0.0
 
-    def load_dataframe(self, dataframe):
+
+    def load_dataframe_into_object(self, dataframe):
+        """
+        Loading data from a given Pands Dataframe into the local Laban elements of
+        this frame. Does this for the basic elements which can be determined from
+        this frame. Elements which need previous frames (for velocity, acceleration) 
+        are loaded in later functions
+
+        Params:
+            dataframe (Pandas Dataframe): A dataframe with all Mediapipe coordinates for this frame
+
+        Returns:
+            None
+        """
         raw_df_data = dataframe.to_dict(orient='records')
         self.frame = raw_df_data[0]['frame']
         points_array = []
@@ -83,42 +98,29 @@ class CAERFrameFeatures:
        # print(points_array)
         
         ##### calculating necessary f points as mentioned in ./references/Feature_Tabellen.pdf
-
+        self.lhand_position = points_array[19]
+        self.rhand_position = points_array[20]
         # f1 is feet to hips distance, avg of both sides
         self.f1 = (distance.euclidean(points_array[28],points_array[24]) + distance.euclidean(points_array[27],points_array[23]))/2
         # f3 is rhand to lhand distance
-        self.f3 = distance.euclidean(points_array[20],points_array[19])
+        self.f3 = distance.euclidean(self.lhand_position,self.rhand_position)
         # f4 is hands to head distance, avg of both sides
-        self.f4 = (distance.euclidean(points_array[20],points_array[0]) + distance.euclidean(points_array[19],points_array[0]))/2
+        self.f4 = (distance.euclidean(self.lhand_position,points_array[0]) + distance.euclidean(self.rhand_position,points_array[0]))/2
         # f5 is pelvis height, distance of pelvis to ground
         # use middle points of ankles as ground and hips as pelvis
         ankle_midpoint = (((points_array[28][0] + points_array[28][0])/2), ((points_array[28][1] + points_array[28][1])/2), ((points_array[28][2] + points_array[28][2])/2))
-        pelvis_position = (((points_array[24][0] + points_array[23][0])/2), ((points_array[24][1] + points_array[23][1])/2), ((points_array[24][2] + points_array[23][2])/2))
-        self.f5 = distance.euclidean(ankle_midpoint, pelvis_position)
+        self.pelvis_position = (((points_array[24][0] + points_array[23][0])/2), ((points_array[24][1] + points_array[23][1])/2), ((points_array[24][2] + points_array[23][2])/2))
+        self.f5 = distance.euclidean(ankle_midpoint, self.pelvis_position)
         # f10 is angle between head orientation and body path (trajectory of pelvis)
         self.f10 = ""
             #-> Head orientation messen: ob Abstand Auge-Nase l und r sich ändert?
-        # f11 is deceleration of pelvis
-            #-> needs former frame position of pelvis
-        self.f11 = ""
-        # f12 is distance of pelvis over time period
-            #-> needs former frame position of pelvis
-        self.f12 = ""
-        # f13 is avg velocity of hands
-            #-> needs former frame position of hands
-        self.f13 = ""
-        # f15 is derivative of hands velocities with respect to time
-            #-> solve f13 first
-        self.f15 = ""
-        # f18 is derivative of f15 velocities with respect to time
-            #-> solve f15 first
-        self.f18 = ""
+        
         # f19 is bounding volume of all joints
         self.f19 = ""
         
             #-> Funktion geschrieben, Liste erarbeiten und einfügen
 
-        upper_body_points_list = points_array[0], pelvis_position, points_array[12], points_array[11], points_array[14], points_array[13], points_array[16], points_array[15], points_array[23], points_array[24]
+        upper_body_points_list = points_array[0], self.pelvis_position, points_array[12], points_array[11], points_array[14], points_array[13], points_array[16], points_array[15], points_array[23], points_array[24]
         # f22 is volume of left side
         self.f22 = self.calculate_area_of_upper_body("left", upper_body_points_list)
         # f23 is volume of right side
@@ -132,30 +134,25 @@ class CAERFrameFeatures:
         """
 
         # f24 is distance head to root joint
-        self.f24 = distance.euclidean(points_array[0], pelvis_position)
+        self.f24 = distance.euclidean(points_array[0], self.pelvis_position)
    
         # f25 is relation of hand's position to body       
         self.f25 = ""
 
-        print(f"f1 on frame {self.frame}: {self.f1}")
-        print(f"f3 on frame {self.frame}: {self.f3}")
-        print(f"f4 on frame {self.frame}: {self.f4}")
-        print(f"f5 on frame {self.frame}: {self.f5}")
+        print(f"distance feet - hip on frame {self.frame}: {self.f1}")
+        print(f"hands distance on frame {self.frame}: {self.f3}")
+        print(f"distance heands - head on frame {self.frame}: {self.f4}")
+        print(f"distance pelvis - ground on frame {self.frame}: {self.f5}")
         """
-        print(f"f10 on frame {self.frame}: {self.f10}")
-        print(f"f11 on frame {self.frame}: {self.f11}")
-        print(f"f12 on frame {self.frame}: {self.f12}")
-        print(f"f13 on frame {self.frame}: {self.f13}")
-        print(f"f15 on frame {self.frame}: {self.f15}")
-        print(f"f18 on frame {self.frame}: {self.f18}")
-        print(f"f19 on frame {self.frame}: {self.f19}")
+        print(f"angle of head to body orientation on frame {self.frame}: {self.f10}")
+        print(f"full body volume on frame {self.frame}: {self.f19}")
         """
-        print(f"f20 on frame {self.frame}: {self.f20}")
-        print(f"f22 on frame {self.frame}: {self.f22}")
-        print(f"f23 on frame {self.frame}: {self.f23}")
+        print(f"volume upper body on frame {self.frame}: {self.f20}")
+        print(f"volume left side on frame {self.frame}: {self.f22}")
+        print(f"volume right side on frame {self.frame}: {self.f23}")
         """
-        print(f"f24 on frame {self.frame}: {self.f24}")
-        print(f"f25 on frame {self.frame}: {self.f25}")
+        print(f"distance of head to root joint on frame {self.frame}: {self.f24}")
+        print(f"relation of hand's position to body on frame {self.frame}: {self.f25}")
         """
 
 
@@ -163,7 +160,7 @@ class CAERFrameFeatures:
         """
         Sorts given points in list by value using BubbleSort algorithm
 
-        Arguments:
+        Params:
             value_to_sort (String): which value should be used to sort. Can be "x","Y" or "z"
             points_list: List of body joint points with x,y,z coordinates
         
@@ -192,7 +189,7 @@ class CAERFrameFeatures:
         """
         Calculates the area of one side of the upper body. Uses the x and y values of body joint points found by  MediaPipe pose landmarker.
         
-        Arguments:
+        Params:
             side (String): which side of the body is calculated, as seen from the camera. Can be "left" and "right".
             body_points (List of tuples): a list of found joint points. For a correct calculation, the list needs to include all upper body points left or right of the nose point and the pelvis, i.e. nose, shoulder(s), elbow(s), wrist(s), hip(s), pelvis.
                                         The first element of this list needs to be the nose (Point 0), se second the pelvis(middle of the two hip points)
@@ -276,6 +273,114 @@ class CAERFrameFeatures:
         volume = polygon.area						
         return volume
 
+    def get_ph_positions(self):
+        """
+        Return the pelvis and hands positions for this frame
+
+        Params:
+            None
+
+        Returns:
+            points_list (list of tuples): A list which consists of the palvis, left and right hand position
+        """
+        points_list = [self.pelvis_position, self.rhand_position, self.lhand_position]
+        return points_list
+    
+    def calc_velocities(self, previous_frame_poins_list, last_frame):
+        """
+        Calculate the velicities of the pelvis and hands
+        Params:
+            previous_frame_points_list (list of tuples): A list containing the pelvis, left and right hands position from the previuous frame
+            last_frame: The number of the last frame
+        Returns:
+            None
+        """
+        if self.frame == 0:
+            last_pelvis_position = self.pelvis_position
+            last_rhand_position = self.rhand_position
+            last_lhand_position = self.lhand_position
+            seconds_from_last_frame = 1/30.0
+        else:
+            last_pelvis_position = previous_frame_poins_list[0]
+            last_rhand_position = previous_frame_poins_list[1]
+            last_lhand_position = previous_frame_poins_list[2]
+            seconds_from_last_frame = (self.frame - last_frame)/30
+        
+        # f12 is velocity of pelvis over time period
+        self.f12 = distance.euclidean(last_pelvis_position, self.pelvis_position)/seconds_from_last_frame
+
+        # f13 is avg velocity of hands
+        lhand_velocity = distance.euclidean(last_lhand_position, self.lhand_position)/seconds_from_last_frame
+        rhand_velocity = distance.euclidean(last_rhand_position, self.rhand_position)/seconds_from_last_frame
+        self.f13 = (lhand_velocity + rhand_velocity)/2
+        print(f"pelvis velocity from last frame on frame {self.frame}: {self.f12}")
+        print(f"avg velocity from last frame on frame {self.frame}: {self.f13}")
+        
+    def get_velocities(self):
+        """
+        Return the velocities of the hands and pelvis
+        Params:
+            None
+        Returns:
+            velocities_list: A list containing the velocity of the hands and pelvis
+        """
+        velocities_list = [self.f12, self.f13]
+        return velocities_list
+
+    def calc_accelerations(self, previous_frame_velocities, last_frame):
+        """
+        Calculate the acceleration of the pelvis
+        Params:
+            previous_velocities_list (list of tuples): A list containing the pelvis, left and right hands velocities from the previuous frame
+            last_frame: The number of the last frame
+        Returns:
+            None
+        """
+        previous_pelvis_velocity = previous_frame_velocities[0]
+        previous_hands_velocity = previous_frame_velocities[1]
+        # f11 is deceleration of pelvis
+        if self.frame == 0:
+            self.f11 = self.f12
+            self.f15 = self.f11
+            self.f16 = self.f13
+        else:
+            self.f11 = -(self.f12 - previous_pelvis_velocity)/((self.frame - last_frame)/30.0)
+            self.f15 = -self.f11
+            self.f16 = (self.f13 - previous_hands_velocity)/((self.frame - last_frame)/30.0)
+        
+        print(f"pelvis deceleration from last frame on frame {self.frame}: {self.f11}")
+        print(f"pelvis accceleration from last frame on frame {self.frame}: {self.f15}")
+        print(f"hands acceleration since last frame  on frame {self.frame}: {self.f16}")
+        
+    def get_accelerations(self):
+        """
+        Return the velocities of the pelvis and hands
+        Params:
+            None
+        Returns:
+            acceleration_list: A list of the pelvis and hands acceleration
+        """
+        acceleration_list = [self.f15, self.f16]
+        return acceleration_list
+
+    def calc_jerk(self, previous_frames_acceleration_list, last_frame):
+        """
+        Calculate the rate of change in pelvis and hands acceleration ("Jerk")
+        Params:
+            previous_frame_acceleration_list (list of tuples): A list containing the pelvis, left and right hands acceleration from the previuous frame
+            last_frame: The number of the last frame
+        Returns:
+            None
+        """
+        previous_pelvis_acceleration = previous_frames_acceleration_list[0]
+        previous_hands_acceleration = previous_frames_acceleration_list[1]
+        # f18 is derivative of f15 accelerations with respect to time ("Jerk") -> rate of changes in acceleration
+            #-> solve f15 first
+        if self.frame > 0:
+            self.f18 = (self.f15 - previous_pelvis_acceleration)/((self.frame - last_frame)/30.0)
+        else:
+            self.f18 = 0
+        print(f"Jerk on frame {self.frame}: {self.f18}")
 
     ### Getter and Setter methods
         
