@@ -32,8 +32,8 @@ class CAERFrameFeatures:
         self.f18 = (0.0, 0.0, 0.0)
 
         self.centroid_position = (0.0,0.0,0.0)
-        self.face_and_centroid_points_list = []
-self.face_centroid_movement_correlation = (1,1,1)
+        self.face_points_list = []
+        self.face_centroid_movement_correlation = (1,1,1)
         self.pelvis_position = (0.0, 0.0, 0.0)
         self.lhand_position = (0.0, 0.0, 0.0)
         self.rhand_position = (0.0, 0.0, 0.0)
@@ -116,23 +116,19 @@ self.face_centroid_movement_correlation = (1,1,1)
         self.pelvis_position = (((points_array[24][0] + points_array[23][0])/2), ((points_array[24][1] + points_array[23][1])/2), ((points_array[24][2] + points_array[23][2])/2))
         self.f5 = distance.euclidean(ankle_midpoint, self.pelvis_position)
         
-        root_point_sum_x = point_array[11][0] + point_array[12][0] +point_array[23][0] + 
-point_array[24][0]
-        root_point_sum_y = point_array[11][1] + point_array[12][1] +point_array[23][1] + 
-point_array[24][1]
-        root_point_sum_z = point_array[11][2] + point_array[12][2] +point_array[23][2] + 
-point_array[24][2]
-        self.centroid_position = (root_point_sum_x/4,       root_point_sum_x/4,root_point_sum_x/4)
+        root_point_sum_x = points_array[11][0] + points_array[12][0] + points_array[23][0] + points_array[24][0]
+        root_point_sum_y = points_array[11][1] + points_array[12][1] + points_array[23][1] + points_array[24][1]
+        root_point_sum_z = points_array[11][2] + points_array[12][2] + points_array[23][2] + points_array[24][2]
+        self.centroid_position = (root_point_sum_x/4,root_point_sum_y/4,root_point_sum_z/4)
 
-        self.face_points_list = point_array[:10]    
+        self.face_points_list = points_array[:10]    
         self.face_points_list.append(self.centroid_position)
 
 # f19 is bounding volume of all joints
         full_body_volume_list = [points_array[0], self.pelvis_position]
-        full_body_volume_list.append(points_array)
+        full_body_volume_list += points_array
         left_vol = self.calculate_area_of_body("left", full_body_volume_list)
-        right_vol = 
-self.calculate_area_of_body("right", full_body_volume_list)
+        right_vol = self.calculate_area_of_body("right", full_body_volume_list)
         self.f19 = left_vol + right_vol
 
         upper_body_points_list = points_array[0], self.pelvis_position, points_array[12], points_array[11], points_array[14], points_array[13], points_array[16], points_array[15], points_array[23], points_array[24]
@@ -152,14 +148,13 @@ self.calculate_area_of_body("right", full_body_volume_list)
         self.f24 = distance.euclidean(points_array[0], self.pelvis_position)
    
         # f25 is relation of hand's position to body
-        horizontal_head_level = self.face_list[0][1]
-        for point in self.horizontal_head_level:
+        horizontal_head_level = self.face_points_list[0][1]
+        for point in self.face_points_list:
             if point[1] > horizontal_head_level:
                 horizontal_head_level = point[1]
         if self.lhand_position[1] > horizontal_head_level or self.rhand_position[1] > horizontal_head_level: 
             self.f25 = 2
-        elif 
-self.lhand_position[1] > self.centroid_position[1] or self.rhand_position[1] > self.centroid_position[1]:
+        elif self.lhand_position[1] > self.centroid_position[1] or self.rhand_position[1] > self.centroid_position[1]:
             self.f25 = 1
         else:
             self.f25 = 0
@@ -235,7 +230,6 @@ self.lhand_position[1] > self.centroid_position[1] or self.rhand_position[1] > s
         for x_index in range(range_start, range_stop, range_step):						
             if sorted_x_axis_list[x_index] in unused_points_list:
                 # if point on the left of the current point is beneath the "nose" point, add it to the path 					
-                print(sorted_y_axis_list.index(sorted_x_axis_list[x_index]))
                 if sorted_y_axis_list.index(sorted_x_axis_list[x_index]) < sorted_y_axis_list.index(points_list[0]):					
                     polygon_path_forth.append(sorted_x_axis_list[x_index])				
                     unused_points_list.remove(sorted_x_axis_list[x_index])				
@@ -308,7 +302,7 @@ self.lhand_position[1] > self.centroid_position[1] or self.rhand_position[1] > s
         points_list = [self.pelvis_position, self.rhand_position, self.lhand_position]
         return points_list
     
-    def get_face_point_list(self):
+    def get_face_points_list(self):
         return self.face_points_list
 
     def calc_head_body_angle(self, previous_points_list):
@@ -319,28 +313,29 @@ self.lhand_position[1] > self.centroid_position[1] or self.rhand_position[1] > s
         Returns:
             None
         """
-        previous_face_list = previous_points_list[:1]
+        previous_face_list = previous_points_list[1:]
         previous_centroid = previous_points_list[len(previous_points_list)-1]
         summed_x_change = 0
         summed_y_change = 0
         summed_z_change = 0        
-        for index in range(0,len(previous_face_list)-1):
-            summed_x_change += (self.face_points_list[index][0] - previous_face_list[index][0])
-            
-            summed_y_change += (self.face_points_list[index][1] - previous_face_list[index][1])
+        if self.frame > 0:
+            for index in range(0,len(previous_face_list)-1):
+                summed_x_change += (self.face_points_list[index][0] - previous_face_list[index][0])
+                
+                summed_y_change += (self.face_points_list[index][1] - previous_face_list[index][1])
 
-            summed_z_change += (self.face_points_list[index][2] - previous_face_list[index][2])
+                summed_z_change += (self.face_points_list[index][2] - previous_face_list[index][2])
 
-        head_movement = (summed_x_change, summed_y_change, summed_z_change)
+        face_movement = (summed_x_change, summed_y_change, summed_z_change)
 
         centroid_x_movement = self.centroid_position[0] - previous_centroid[0]
-centroid_y_movement = self.centroid_position[1] - previous_centroid[1]
-centroid_z_movement = self.centroid_position[2] - previous_centroid[2]
+        centroid_y_movement = self.centroid_position[1] - previous_centroid[1]
+        centroid_z_movement = self.centroid_position[2] - previous_centroid[2]
 
         centroid_movement = (centroid_x_movement,centroid_y_movement, centroid_z_movement)
-
-        self.f10 = (face_movement[0]/centroid_movement[0], face_movement[1]/centroid_movement[1], face_movement[2]/centroid_movement[2])
-
+        if self.frame > 0:
+            self.f10 = (face_movement[0]/centroid_movement[0], face_movement[1]/centroid_movement[1], face_movement[2]/centroid_movement[2])
+        
         print(f"angle of head to body orientation on frame {self.frame}: {self.f10}")
    
     def calc_velocities(self, previous_frame_poins_list, last_frame):
@@ -430,7 +425,7 @@ centroid_z_movement = self.centroid_position[2] - previous_centroid[2]
             None
         """
         previous_pelvis_acceleration = previous_frames_acceleration_list[0]
-        previous_hands_acceleration = previous_frames_acceleration_list[1]
+        #previous_hands_acceleration = previous_frames_acceleration_list[1]
         # f18 is derivative of f15 accelerations with respect to time ("Jerk") -> rate of changes in acceleration
             #-> solve f15 first
         if self.frame > 0:

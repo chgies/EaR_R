@@ -6,20 +6,6 @@ This file contains all variables and functions to extract the features from
 caer video pose data. For more information, look into my thesis :)
 """
 
-"""
-Nächste Schritte:
-    - Wie Laban-elemente nutzen?
-        -> Man könnte 
-                1. aus den dafür notwendigen Werten einen wert berechnen
-                   und daraus ableiten, wie hoch die wahrscheinlichkeit ist, dass
-                   in diesem frame labanelement da ist. 
-                   Diese werte könnte man 
-                2. als labels nutzen für ein NN, dass mit Koordinaten eines Frames und den
-                   Labels trainiert wird
-                3. Profit
-                4. Mit diesem Netz wird dann ein 2. Netz trainiert, das mit Emotionen funktioniert? Dennis fragen
-"""
-
 class CAERFeatureExtractor:
     def __init__(self, path_to_csv_file):
         self.path_to_csv_file = path_to_csv_file
@@ -73,10 +59,9 @@ class CAERFeatureExtractor:
                 feature_object.calc_accelerations(previous_velocities_list, frame_index-1)
                 previous_accelerations_list = self.frame_feature_array[frame_index-1].get_accelerations()
                 feature_object.calc_jerk(previous_accelerations_list, frame_index-1)
+                previous_face_list = self.frame_feature_array[frame_index-1].get_face_points_list()
+                feature_object.calc_head_body_angle(previous_face_list)
+
         self.calc_laban_elements()
-
-previous_face_list = self.frame_feature_array[frame_index-1].get_face_list()
-
-feature_object.calc_head_orientation(previous_face_list)
 
 caer_feature_extractor = CAERFeatureExtractor("caer_processing/CAER_pose_example.csv")
