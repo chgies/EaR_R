@@ -32,7 +32,7 @@ class CAERFrameFeatures:
         self.f18 = (0.0, 0.0, 0.0)
 
         self.centroid_position = (0.0,0.0,0.0)
-        self.face_points_list = []
+        self.face_and_centroid_points_list = []
 self.face_centroid_movement_correlation = (1,1,1)
         self.pelvis_position = (0.0, 0.0, 0.0)
         self.lhand_position = (0.0, 0.0, 0.0)
@@ -122,9 +122,10 @@ point_array[24][0]
 point_array[24][1]
         root_point_sum_z = point_array[11][2] + point_array[12][2] +point_array[23][2] + 
 point_array[24][2]
-        self.centroid.position = (root_point_sum_x/4,       root_point_sum_x/4,root_point_sum_x/4)
+        self.centroid_position = (root_point_sum_x/4,       root_point_sum_x/4,root_point_sum_x/4)
 
-        self.face_points_list = point_array[:10]     
+        self.face_points_list = point_array[:10]    
+        self.face_points_list.append(self.centroid_position)
 
 # f19 is bounding volume of all joints
         self.f19 = ""
@@ -300,12 +301,11 @@ point_array[24][2]
     def get_face_point_list(self):
         return self.face_points_list
 
-    def calc_head_body_angle(self, previous_points_list, last_frame):
+    def calc_head_body_angle(self, previous_points_list):
         """
         Calculate the correlation between head and body orientation to find "FLOW" Lanan element. Finds a list containing the ratio of face and centroid movement in x,y and z axis.
         Params:
             previous_points_list (list of tuples): A list containing the mediapipe face points and the centroid from last frame
-            last_frame: The number of the last frame
         Returns:
             None
         """
