@@ -30,6 +30,10 @@ class CAERFrameFeatures:
         self.f16 = (0.0, 0.0, 0.0)
         self.f17 = (0.0, 0.0, 0.0)
         self.f18 = (0.0, 0.0, 0.0)
+
+        self.centroid_position = (0.0,0.0,0.0)
+        self.face_points_list = []
+self.face_centroid_movement_correlation = (1,1,1)
         self.pelvis_position = (0.0, 0.0, 0.0)
         self.lhand_position = (0.0, 0.0, 0.0)
         self.rhand_position = (0.0, 0.0, 0.0)
@@ -111,18 +115,18 @@ class CAERFrameFeatures:
         ankle_midpoint = (((points_array[28][0] + points_array[28][0])/2), ((points_array[28][1] + points_array[28][1])/2), ((points_array[28][2] + points_array[28][2])/2))
         self.pelvis_position = (((points_array[24][0] + points_array[23][0])/2), ((points_array[24][1] + points_array[23][1])/2), ((points_array[24][2] + points_array[23][2])/2))
         self.f5 = distance.euclidean(ankle_midpoint, self.pelvis_position)
-        # f10 is angle between head orientation and body path (trajectory of centroid)
+        
         root_point_sum_x = point_array[11][0] + point_array[12][0] +point_array[23][0] + 
 point_array[24][0]
         root_point_sum_y = point_array[11][1] + point_array[12][1] +point_array[23][1] + 
 point_array[24][1]
         root_point_sum_z = point_array[11][2] + point_array[12][2] +point_array[23][2] + 
 point_array[24][2]
-        centroid = (root_point_sum_x/4,       root_point_sum_x/4,root_point_sum_x/4)
-        self.f10 = ""
-            #-> Head orientation messen: ob Abstand Auge-Nase l und r sich ändert?
-        
-        # f19 is bounding volume of all joints
+        self.centroid.position = (root_point_sum_x/4,       root_point_sum_x/4,root_point_sum_x/4)
+
+        self.face_points_list = point_array[:10]     
+
+# f19 is bounding volume of all joints
         self.f19 = ""
         
             #-> Funktion geschrieben, Liste erarbeiten und einfügen
@@ -292,6 +296,40 @@ point_array[24][2]
         """
         points_list = [self.pelvis_position, self.rhand_position, self.lhand_position]
         return points_list
+    
+    def get_face_point_list(self):
+        return self.face_points_list
+
+    def calc_head_body_angle(self, previous_points_list, last_frame):
+        """
+        Calculate the correlation between head and body orientation to find "FLOW" Lanan element. Finds a list containing the ratio of face and centroid movement in x,y and z axis.
+        Params:
+            previous_points_list (list of tuples): A list containing the mediapipe face points and the centroid from last frame
+            last_frame: The number of the last frame
+        Returns:
+            None
+        """
+        previous_face_list = previous_points_list[:1]
+        previous_centroid = previous_points_list[len(previous_points_list)-1]
+        summed_x_change = 0
+        summed_y_change = 0
+        summed_z_change = 0        
+        for index in range(0,len(previous_face_list)-1):
+            summed_x_change += (self.face_points_list[index][0] - previous_face_list[index][0])
+            
+            summed_y_change += (self.face_points_list[index][1] - previous_face_list[index][1])
+
+            summed_z_change += (self.face_points_list[index][2] - previous_face_list[index][2])
+
+        head_movement = (summed_x_change, summed_y_change, summed_z_change)
+
+        centroid_x_movement = self.centroid_position[0] - previous_centroid[0]
+centroid_y_movement = self.centroid_position[1] - previous_centroid[1]
+centroid_z_movement = self.centroid_position[2] - previous_centroid[2]
+
+        centroid_movement = (centroid_x_movement,centroid_y_movement, centroid_z_movement)
+
+        self.face_centroid_movement_correlation = (face_movement[0]/centroid_movement[0], face_movement[1]/centroid_movement[1], face_movement[2]/centroid_movement[2])
     
     def calc_velocities(self, previous_frame_poins_list, last_frame):
         """
