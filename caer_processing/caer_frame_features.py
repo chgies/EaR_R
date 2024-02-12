@@ -45,7 +45,7 @@ self.face_centroid_movement_correlation = (1,1,1)
         self.f22 = (0.0, 0.0, 0.0)
         self.f23 = (0.0, 0.0, 0.0)
         self.f24 = (0.0, 0.0, 0.0)
-        self.f25 = (0.0, 0.0, 0.0)
+        self.f25 = 1
 
         # Space components
         self.f26 = (0.0, 0.0, 0.0)
@@ -128,15 +128,18 @@ point_array[24][2]
         self.face_points_list.append(self.centroid_position)
 
 # f19 is bounding volume of all joints
-        self.f19 = ""
-        
-            #-> Funktion geschrieben, Liste erarbeiten und einfügen
+        full_body_volume_list = [points_array[0], self.pelvis_position]
+        full_body_volume_list.append(points_array)
+        left_vol = self.calculate_area_of_body("left", full_body_volume_list)
+        right_vol = 
+self.calculate_area_of_body("right", full_body_volume_list)
+        self.f19 = left_vol + right_vol
 
         upper_body_points_list = points_array[0], self.pelvis_position, points_array[12], points_array[11], points_array[14], points_array[13], points_array[16], points_array[15], points_array[23], points_array[24]
         # f22 is volume of left side
-        self.f22 = self.calculate_area_of_upper_body("left", upper_body_points_list)
+        self.f22 = self.calculate_area_of_body("left", upper_body_points_list)
         # f23 is volume of right side
-        self.f23 = self.calculate_area_of_upper_body("right", upper_body_points_list)
+        self.f23 = self.calculate_area_of_body("right", upper_body_points_list)
         # f20 is volume of upper body
         self.f20 = self.f22 + self.f23
 
@@ -148,17 +151,24 @@ point_array[24][2]
         # f24 is distance head to root joint
         self.f24 = distance.euclidean(points_array[0], self.pelvis_position)
    
-        # f25 is relation of hand's position to body       
-        self.f25 = ""
+        # f25 is relation of hand's position to body
+        horizontal_head_level = self.face_list[0][1]
+        for point in self.horizontal_head_level:
+            if point[1] > horizontal_head_level:
+                horizontal_head_level = point[1]
+        if self.lhand_position[1] > horizontal_head_level or self.rhand_position[1] > horizontal_head_level: 
+            self.f25 = 2
+        elif 
+self.lhand_position[1] > self.centroid_position[1] or self.rhand_position[1] > self.centroid_position[1]:
+            self.f25 = 1
+        else:
+            self.f25 = 0
 
         print(f"distance feet - hip on frame {self.frame}: {self.f1}")
         print(f"hands distance on frame {self.frame}: {self.f3}")
         print(f"distance heands - head on frame {self.frame}: {self.f4}")
         print(f"distance pelvis - ground on frame {self.frame}: {self.f5}")
-        """
-        print(f"angle of head to body orientation on frame {self.frame}: {self.f10}")
         print(f"full body volume on frame {self.frame}: {self.f19}")
-        """
         print(f"volume upper body on frame {self.frame}: {self.f20}")
         print(f"volume left side on frame {self.frame}: {self.f22}")
         print(f"volume right side on frame {self.frame}: {self.f23}")
@@ -197,7 +207,7 @@ point_array[24][2]
 
         return points_as_list
 
-    def calculate_area_of_upper_body(self, side_to_calculate, points_list):
+    def calculate_area_of_body(self, side_to_calculate, points_list):
         """
         Calculates the area of one side of the upper body. Uses the x and y values of body joint points found by  MediaPipe pose landmarker.
         
@@ -329,8 +339,10 @@ centroid_z_movement = self.centroid_position[2] - previous_centroid[2]
 
         centroid_movement = (centroid_x_movement,centroid_y_movement, centroid_z_movement)
 
-        self.face_centroid_movement_correlation = (face_movement[0]/centroid_movement[0], face_movement[1]/centroid_movement[1], face_movement[2]/centroid_movement[2])
-    
+        self.f10 = (face_movement[0]/centroid_movement[0], face_movement[1]/centroid_movement[1], face_movement[2]/centroid_movement[2])
+
+        print(f"angle of head to body orientation on frame {self.frame}: {self.f10}")
+   
     def calc_velocities(self, previous_frame_poins_list, last_frame):
         """
         Calculate the velicities of the pelvis and hands
