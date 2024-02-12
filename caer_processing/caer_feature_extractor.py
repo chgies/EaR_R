@@ -75,4 +75,8 @@ class CAERFeatureExtractor:
                 feature_object.calc_jerk(previous_accelerations_list, frame_index-1)
         self.calc_laban_elements()
 
+previous_face_list = self.frame_feature_array[frame_index-1].get_face_list()
+
+feature_object.calc_head_orientation(previous_face_list)
+
 caer_feature_extractor = CAERFeatureExtractor("caer_processing/CAER_pose_example.csv")
