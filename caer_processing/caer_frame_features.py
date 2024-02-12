@@ -111,7 +111,14 @@ class CAERFrameFeatures:
         ankle_midpoint = (((points_array[28][0] + points_array[28][0])/2), ((points_array[28][1] + points_array[28][1])/2), ((points_array[28][2] + points_array[28][2])/2))
         self.pelvis_position = (((points_array[24][0] + points_array[23][0])/2), ((points_array[24][1] + points_array[23][1])/2), ((points_array[24][2] + points_array[23][2])/2))
         self.f5 = distance.euclidean(ankle_midpoint, self.pelvis_position)
-        # f10 is angle between head orientation and body path (trajectory of pelvis)
+        # f10 is angle between head orientation and body path (trajectory of centroid)
+        root_point_sum_x = point_array[11][0] + point_array[12][0] +point_array[23][0] + 
+point_array[24][0]
+        root_point_sum_y = point_array[11][1] + point_array[12][1] +point_array[23][1] + 
+point_array[24][1]
+        root_point_sum_z = point_array[11][2] + point_array[12][2] +point_array[23][2] + 
+point_array[24][2]
+        centroid = (root_point_sum_x/4,       root_point_sum_x/4,root_point_sum_x/4)
         self.f10 = ""
             #-> Head orientation messen: ob Abstand Auge-Nase l und r sich ändert?
         
