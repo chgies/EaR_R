@@ -103,9 +103,11 @@ class CAERFrameFeatures:
         
         ##### calculating necessary f points as mentioned in ./references/Feature_Tabellen.pdf
         self.lhand_position = points_array[19]
-        self.rhand_position = points_array[20]
+        self.rhand_position = points_array[18]
         # f1 is feet to hips distance, avg of both sides
         self.f1 = (distance.euclidean(points_array[28],points_array[24]) + distance.euclidean(points_array[27],points_array[23]))/2
+        # f2 is hands to shoulders distance, avg of both sides
+        self.f2 = (distance.euclidean(points_array[18],points_array[12]) + distance.euclidean(points_array[19],points_array[11]))/2
         # f3 is rhand to lhand distance
         self.f3 = distance.euclidean(self.lhand_position,self.rhand_position)
         # f4 is hands to head distance, avg of both sides
@@ -123,8 +125,11 @@ class CAERFrameFeatures:
 
         self.face_points_list = points_array[:10]    
         self.face_points_list.append(self.centroid_position)
-
-# f19 is bounding volume of all joints
+        # f7 is distance of centroid to ground
+        self.f7 = (distance.euclidean(self.centroid_position,points_array[27]) + distance.euclidean(self.centroid_position,points_array[28]))/2        
+        # f8 is distance pelvis to centroid
+        self.f8 = distance.euclidean(self.pelvis_position,self.centroid_position)
+        # f19 is bounding volume of all joints
         full_body_volume_list = [points_array[0], self.pelvis_position]
         full_body_volume_list += points_array
         left_vol = self.calculate_area_of_body("left", full_body_volume_list)
@@ -160,17 +165,19 @@ class CAERFrameFeatures:
             self.f25 = 0
 
         print(f"distance feet - hip on frame {self.frame}: {self.f1}")
+        print(f"distance hands - shoulders on frame {self.frame}: {self.f2}")
         print(f"hands distance on frame {self.frame}: {self.f3}")
         print(f"distance heands - head on frame {self.frame}: {self.f4}")
         print(f"distance pelvis - ground on frame {self.frame}: {self.f5}")
+        print(f"distance centroid - ground on frame {self.frame}: {self.f7}")
+        print(f"distance pelvis - centroid on frame {self.frame}: {self.f8}")
         print(f"full body volume on frame {self.frame}: {self.f19}")
         print(f"volume upper body on frame {self.frame}: {self.f20}")
         print(f"volume left side on frame {self.frame}: {self.f22}")
         print(f"volume right side on frame {self.frame}: {self.f23}")
-        """
         print(f"distance of head to root joint on frame {self.frame}: {self.f24}")
         print(f"relation of hand's position to body on frame {self.frame}: {self.f25}")
-        """
+        
 
 
     def sort_joint_points_by_value(self, value_to_sort, list_of_point_tuples):
@@ -367,6 +374,8 @@ class CAERFrameFeatures:
         self.f13 = (lhand_velocity + rhand_velocity)/2
         print(f"pelvis velocity from last frame on frame {self.frame}: {self.f12}")
         print(f"avg velocity from last frame on frame {self.frame}: {self.f13}")
+
+        # Add hips velo for f17
         
     def get_velocities(self):
         """
@@ -391,6 +400,8 @@ class CAERFrameFeatures:
         previous_pelvis_velocity = previous_frame_velocities[0]
         previous_hands_velocity = previous_frame_velocities[1]
         # f11 is deceleration of pelvis
+        # f16 is acceleration of hands
+        # f15 is acceleration of hips (is still pelvis, needs to be changed)
         if self.frame == 0:
             self.f11 = self.f12
             self.f15 = self.f11
@@ -401,8 +412,8 @@ class CAERFrameFeatures:
             self.f16 = (self.f13 - previous_hands_velocity)/((self.frame - last_frame)/30.0)
         
         print(f"pelvis deceleration from last frame on frame {self.frame}: {self.f11}")
-        print(f"pelvis accceleration from last frame on frame {self.frame}: {self.f15}")
-        print(f"hands acceleration since last frame  on frame {self.frame}: {self.f16}")
+        print(f"hands accceleration from last frame on frame {self.frame}: {self.f16}")
+        print(f"hips acceleration since last frame  on frame {self.frame}: {self.f15}")
         
     def get_accelerations(self):
         """
@@ -412,7 +423,7 @@ class CAERFrameFeatures:
         Returns:
             acceleration_list: A list of the pelvis and hands acceleration
         """
-        acceleration_list = [self.f15, self.f16]
+        acceleration_list = [self.f16, self.f15]
         return acceleration_list
 
     def calc_jerk(self, previous_frames_acceleration_list, last_frame):
