@@ -33,11 +33,13 @@ class CAERFrameFeatures:
 
         self.centroid_position = (0.0,0.0,0.0)
         self.face_points_list = []
+        self.pelvis_velocity = 0.0
         self.face_centroid_movement_correlation = (1,1,1)
         self.pelvis_position = (0.0, 0.0, 0.0)
         self.lhand_position = (0.0, 0.0, 0.0)
         self.rhand_position = (0.0, 0.0, 0.0)
-
+        self.lhip_position = (0.0, 0.0, 0.0)
+        self.rhip_position = (0.0, 0.0, 0.0)
         # Shape components
         self.f19 = (0.0, 0.0, 0.0)
         self.f20 = (0.0, 0.0, 0.0)
@@ -115,6 +117,8 @@ class CAERFrameFeatures:
         # f5 is pelvis height, distance of pelvis to ground
         # use middle points of ankles as ground and hips as pelvis
         ankle_midpoint = (((points_array[28][0] + points_array[28][0])/2), ((points_array[28][1] + points_array[28][1])/2), ((points_array[28][2] + points_array[28][2])/2))
+        self.lhip_position = points_array[24]
+        self.rhip_position = points_array[23]
         self.pelvis_position = (((points_array[24][0] + points_array[23][0])/2), ((points_array[24][1] + points_array[23][1])/2), ((points_array[24][2] + points_array[23][2])/2))
         self.f5 = distance.euclidean(ankle_midpoint, self.pelvis_position)
         
@@ -296,6 +300,12 @@ class CAERFrameFeatures:
         volume = polygon.area						
         return volume
 
+    def get_lhip_position(self):
+        return self.lhip_position
+    
+    def get_rhip_position(self):
+        return self.rhip_position
+ 
     def get_ph_positions(self):
         """
         Return the pelvis and hands positions for this frame
@@ -304,9 +314,9 @@ class CAERFrameFeatures:
             None
 
         Returns:
-            points_list (list of tuples): A list which consists of the palvis, left and right hand position
+            points_list (list of tuples): A list which consists of the palvis, left and right hand and hips position
         """
-        points_list = [self.pelvis_position, self.rhand_position, self.lhand_position]
+        points_list = [self.pelvis_position, self.rhand_position, self.lhand_position, self.lhip_position, self.rhip_position]
         return points_list
     
     def get_face_points_list(self):
@@ -321,6 +331,7 @@ class CAERFrameFeatures:
             None
         """
         previous_face_list = previous_points_list[1:]
+        previous_face_list[:2]
         previous_centroid = previous_points_list[len(previous_points_list)-1]
         summed_x_change = 0
         summed_y_change = 0
@@ -345,11 +356,11 @@ class CAERFrameFeatures:
         
         print(f"angle of head to body orientation on frame {self.frame}: {self.f10}")
    
-    def calc_velocities(self, previous_frame_poins_list, last_frame):
+    def calc_velocities(self, previous_frame_points_list, last_frame):
         """
-        Calculate the velicities of the pelvis and hands
+        Calculate the velicities of the hips and hands
         Params:
-            previous_frame_points_list (list of tuples): A list containing the pelvis, left and right hands position from the previuous frame
+            previous_frame_points_list (list of tuples): A list containing the left and right hips and hands position from the previuous frame
             last_frame: The number of the last frame
         Returns:
             None
@@ -358,34 +369,39 @@ class CAERFrameFeatures:
             last_pelvis_position = self.pelvis_position
             last_rhand_position = self.rhand_position
             last_lhand_position = self.lhand_position
+            last_lhip_position = self.lhip_position
+            last_rhip_position = self.rhip_position
             seconds_from_last_frame = 1/30.0
         else:
-            last_pelvis_position = previous_frame_poins_list[0]
-            last_rhand_position = previous_frame_poins_list[1]
-            last_lhand_position = previous_frame_poins_list[2]
+            last_pelvis_position = previous_frame_points_list[0]
+            last_rhand_position = previous_frame_points_list[1]
+            last_lhand_position = previous_frame_points_list[2]
+            last_lhip_position = previous_frame_points_list[3]
+            last_rhip_position = previous_frame_points_list[4]
             seconds_from_last_frame = (self.frame - last_frame)/30
         
-        # f12 is velocity of pelvis over time period
-        self.f12 = distance.euclidean(last_pelvis_position, self.pelvis_position)/seconds_from_last_frame
-
+        self.pelvis_velocity = distance.euclidean(last_pelvis_position, self.pelvis_position)/seconds_from_last_frame 
+        # f12 is velocity of hips over time period
+       lhip_velocity = distance.euclidean(last_lhip_position, self.lhip_position)/seconds_from_last_frame
+        rhip_velocity = distance.euclidean(last_rhip_position, self.rhip_position)/seconds_from_last_frame
+        self.f12 = (lhand_velocity + rhip_velocity)/2
+        print(f"avg hips velocity from last frame on frame {self.frame}: {self.f12}")       
         # f13 is avg velocity of hands
         lhand_velocity = distance.euclidean(last_lhand_position, self.lhand_position)/seconds_from_last_frame
         rhand_velocity = distance.euclidean(last_rhand_position, self.rhand_position)/seconds_from_last_frame
         self.f13 = (lhand_velocity + rhand_velocity)/2
-        print(f"pelvis velocity from last frame on frame {self.frame}: {self.f12}")
+        print(f"hips velocity from last frame on frame {self.frame}: {self.f12}")
         print(f"avg velocity from last frame on frame {self.frame}: {self.f13}")
-
-        # Add hips velo for f17
         
     def get_velocities(self):
         """
-        Return the velocities of the hands and pelvis
+        Return the velocities of the hands, hips and pelvis
         Params:
             None
         Returns:
-            velocities_list: A list containing the velocity of the hands and pelvis
+            velocities_list: A list containing the velocity of the hips and hands 
         """
-        velocities_list = [self.f12, self.f13]
+        velocities_list = [self.f12, self.f13, self.pelvis_velocity]
         return velocities_list
 
     def calc_accelerations(self, previous_frame_velocities, last_frame):
@@ -397,18 +413,19 @@ class CAERFrameFeatures:
         Returns:
             None
         """
-        previous_pelvis_velocity = previous_frame_velocities[0]
+        previous_pelvis_velocity = previous_frame_velocities[2]
         previous_hands_velocity = previous_frame_velocities[1]
+previous_hips_velocity = previous_frame_velocity[0]
         # f11 is deceleration of pelvis
         # f16 is acceleration of hands
         # f15 is acceleration of hips (is still pelvis, needs to be changed)
         if self.frame == 0:
-            self.f11 = self.f12
-            self.f15 = self.f11
-            self.f16 = self.f13
+            self.f11 = 0
+            self.f15 = 0
+            self.f16 = 0
         else:
-            self.f11 = -(self.f12 - previous_pelvis_velocity)/((self.frame - last_frame)/30.0)
-            self.f15 = -self.f11
+            self.f11 = -(self.pelvis_velocity - previous_pelvis_velocity)/((self.frame - last_frame)/30.0)
+            self.f15 = (self.hips_velocity - previous_hips_velocity)/((self.frame - last_frame)/30.0)
             self.f16 = (self.f13 - previous_hands_velocity)/((self.frame - last_frame)/30.0)
         
         print(f"pelvis deceleration from last frame on frame {self.frame}: {self.f11}")
