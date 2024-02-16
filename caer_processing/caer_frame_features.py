@@ -53,35 +53,6 @@ class CAERFrameFeatures:
         self.f26 = (0.0, 0.0, 0.0)
         self.f27 = (0.0, 0.0, 0.0)
 
-        # laban elements
-        self.jump = 0.0
-        self.rhythmicity = 0.0
-        self.spread = 0.0
-        self.free_and_light = 0.0
-        self.up_and_rise = 0.0
-        self.rotation = 0.0
-        self.passive_weight = 0.0
-        self.arms_to_upper_body = 0.0
-        self.sink = 0.0
-        self.head_drop = 0.0
-        self.retreat = 0.0
-        self.condense_and_enclose = 0.0
-        self.bind = 0.0
-        self.twist_and_back = 0.0
-        self.strong = 0.0
-        self.sudden = 0.0
-        self.advance = 0.0
-        self.direct = 0.0
-        self.hands_to_head = 0.0
-        self.hands_above_head = 0.0
-        self.body_shift_backing = 0.0
-        self.head_shake = 0.0
-        self.hands_to_body = 0.0
-        self.orientation_change_lr = 0.0
-        self.hands_to_head_backing = 0.0
-        self.hands_up_backing = 0.0
-
-
     def load_dataframe_into_object(self, dataframe):
         """
         Loading data from a given Pands Dataframe into the local Laban elements of
@@ -101,7 +72,6 @@ class CAERFrameFeatures:
         for row in raw_df_data:
             new_point = (row['x'],row['y'],row['z'])
             points_array.append(new_point)
-       # print(points_array)
         
         ##### calculating necessary f points as mentioned in ./references/Feature_Tabellen.pdf
         self.lhand_position = points_array[19]
@@ -167,22 +137,6 @@ class CAERFrameFeatures:
             self.f25 = 1
         else:
             self.f25 = 0
-
-        print(f"distance feet - hip on frame {self.frame}: {self.f1}")
-        print(f"distance hands - shoulders on frame {self.frame}: {self.f2}")
-        print(f"hands distance on frame {self.frame}: {self.f3}")
-        print(f"distance heands - head on frame {self.frame}: {self.f4}")
-        print(f"distance pelvis - ground on frame {self.frame}: {self.f5}")
-        print(f"distance centroid - ground on frame {self.frame}: {self.f7}")
-        print(f"distance pelvis - centroid on frame {self.frame}: {self.f8}")
-        print(f"full body volume on frame {self.frame}: {self.f19}")
-        print(f"volume upper body on frame {self.frame}: {self.f20}")
-        print(f"volume left side on frame {self.frame}: {self.f22}")
-        print(f"volume right side on frame {self.frame}: {self.f23}")
-        print(f"distance of head to root joint on frame {self.frame}: {self.f24}")
-        print(f"relation of hand's position to body on frame {self.frame}: {self.f25}")
-        
-
 
     def sort_joint_points_by_value(self, value_to_sort, list_of_point_tuples):
         """
@@ -354,8 +308,6 @@ class CAERFrameFeatures:
         if self.frame > 0:
             self.f10 = (face_movement[0]/centroid_movement[0], face_movement[1]/centroid_movement[1], face_movement[2]/centroid_movement[2])
         
-        print(f"angle of head to body orientation on frame {self.frame}: {self.f10}")
-   
     def calc_velocities(self, previous_frame_points_list, last_frame):
         """
         Calculate the velicities of the hips and hands
@@ -414,8 +366,8 @@ class CAERFrameFeatures:
         previous_hands_velocity = previous_frame_velocities[1]
         previous_hips_velocity = previous_frame_velocities[0]
         # f11 is deceleration of pelvis
-        # f16 is acceleration of hands
         # f15 is acceleration of hips 
+        # f16 is acceleration of hands
         if self.frame == 0:
             self.f11 = 0
             self.f15 = 0
@@ -462,12 +414,6 @@ class CAERFrameFeatures:
     def set_frame(self, value):
         self.frame = value
 
-    def get_f1(self):
-        return self.f1
-
-    def set_f1(self, value):
-        self.f1 = value
-
     def get_f2(self):
         return self.f2
 
@@ -492,29 +438,11 @@ class CAERFrameFeatures:
     def set_f5(self, value):
         self.f5 = value
 
-    def get_f6(self):
-        return self.f6
-
-    def set_f6(self, value):
-        self.f6 = value
-
-    def get_f7(self):
-        return self.f7
-
-    def set_f7(self, value):
-        self.f7 = value
-
     def get_f8(self):
         return self.f8
 
     def set_f8(self, value):
         self.f8 = value
-
-    def get_f9(self):
-        return self.f9
-
-    def set_f9(self, value):
-        self.f9 = value
 
     def get_f10(self):
         return self.f10
@@ -540,12 +468,6 @@ class CAERFrameFeatures:
     def set_f13(self, value):
         self.f13 = value
 
-    def get_f14(self):
-        return self.f14
-
-    def set_f14(self, value):
-        self.f14 = value
-
     def get_f15(self):
         return self.f15
 
@@ -557,12 +479,6 @@ class CAERFrameFeatures:
 
     def set_f16(self, value):
         self.f16 = value
-
-    def get_f17(self):
-        return self.f17
-
-    def set_f17(self, value):
-        self.f17 = value
 
     def get_f18(self):
         return self.f18
@@ -581,12 +497,6 @@ class CAERFrameFeatures:
 
     def set_f20(self, value):
         self.f20 = value
-
-    def get_f21(self):
-        return self.f21
-
-    def set_f21(self, value):
-        self.f21 = value
 
     def get_f22(self):
         return self.f22
@@ -611,171 +521,3 @@ class CAERFrameFeatures:
 
     def set_f25(self, value):
         self.f25 = value
-
-    def get_f26(self):
-        return self.f26
-
-    def set_f26(self, value):
-        self.f26 = value
-
-    def get_f27(self):
-        return self.f27
-
-    def set_f27(self, value):
-        self.f27 = value
-
-    def get_jump(self):
-        return self.jump
-
-    def set_jump(self, value):
-        self.jump = value
-
-    def get_rhythmicity(self):
-        return self.rhythmicity
-
-    def set_rhythmicity(self, value):
-        self.rhythmicity = value
-
-    def get_spread(self):
-        return self.spread
-
-    def set_spread(self, value):
-        self.spread = value
-
-    def get_free_and_light(self):
-        return self.free_and_light
-
-    def set_free_and_light(self, value):
-        self.free_and_light = value
-
-    def get_up_and_rise(self):
-        return self.up_and_rise
-
-    def set_up_and_rise(self, value):
-        self.up_and_rise = value
-
-    def get_rotation(self):
-        return self.rotation
-
-    def set_rotation(self, value):
-        self.rotation = value
-
-    def get_passive_weight(self):
-        return self.passive_weight
-
-    def set_passive_weight(self, value):
-        self.passive_weight = value
-
-    def get_arms_to_upper_body(self):
-        return self.arms_to_upper_body
-
-    def set_arms_to_upper_body(self, value):
-        self.arms_to_upper_body = value
-
-    def get_sink(self):
-        return self.sink
-
-    def set_sink(self, value):
-        self.sink = value
-
-    def get_head_drop(self):
-        return self.head_drop
-
-    def set_head_drop(self, value):
-        self.head_drop = value
-
-    def get_retreat(self):
-        return self.retreat
-
-    def set_retreat(self, value):
-        self.retreat = value
-
-    def get_condense_and_enclose(self):
-        return self.condense_and_enclose
-
-    def set_condense_and_enclose(self, value):
-        self.condense_and_enclose = value
-
-    def get_bind(self):
-        return self.bind
-
-    def set_bind(self, value):
-        self.bind = value
-
-    def get_twist_and_back(self):
-        return self.twist_and_back
-
-    def set_twist_and_back(self, value):
-        self.twist_and_back = value
-
-    def get_strong(self):
-        return self.strong
-
-    def set_strong(self, value):
-        self.strong = value
-
-    def get_sudden(self):
-        return self.sudden
-
-    def set_sudden(self, value):
-        self.sudden = value
-
-    def get_advance(self):
-        return self.advance
-
-    def set_advance(self, value):
-        self.advance = value
-
-    def get_direct(self):
-        return self.direct
-
-    def set_direct(self, value):
-        self.direct = value
-
-    def get_hands_to_head(self):
-        return self.hands_to_head
-
-    def set_hands_to_head(self, value):
-        self.hands_to_head = value
-
-    def get_hands_above_head(self):
-        return self.hands_above_head
-
-    def set_hands_above_head(self, value):
-        self.hands_above_head = value
-
-    def get_body_shift_backing(self):
-        return self.body_shift_backing
-
-    def set_body_shift_backing(self, value):
-        self.body_shift_backing = value
-
-    def get_head_shake(self):
-        return self.head_shake
-
-    def set_head_shake(self, value):
-        self.head_shake = value
-
-    def get_hands_to_body(self):
-        return self.hands_to_body
-
-    def set_hands_to_body(self, value):
-        self.hands_to_body = value
-
-    def get_orientation_change_lr(self):
-        return self.orientation_change_lr
-
-    def set_orientation_change_lr(self, value):
-        self.orientation_change_lr = value
-
-    def get_hands_to_head_backing(self):
-        return self.hands_to_head_backing
-
-    def set_hands_to_head_backing(self, value):
-        self.hands_to_head_backing = value
-
-    def get_hands_up_backing(self):
-        return self.hands_up_backing
-
-    def set_hands_up_backing(self, value):
-        self.hands_up_backing = value
