@@ -27,6 +27,7 @@ ToDo:
     - Use these dataframes to get an overview of the specific values for every emotion
     - Use these dataframes to calculate Laban components for the elements
     - Train a Neural Network ising the pose data, the elements (and the emotions as labels)
+    - To all of this again for CANDOR dataset
     - WRITE TESTS, CLEAN UP!
 
 You can find information for feature extraction and further use in the 'references' folder
