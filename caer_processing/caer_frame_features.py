@@ -29,7 +29,7 @@ class CAERFrameFeatures:
         self.f15 = (0.0, 0.0, 0.0)
         self.f16 = (0.0, 0.0, 0.0)
         self.f17 = (0.0, 0.0, 0.0)
-        self.f18 = (0.0, 0.0, 0.0)
+        self.f18 = 0
 
         self.centroid_position = (0.0,0.0,0.0)
         self.face_points_list = []
@@ -382,16 +382,13 @@ class CAERFrameFeatures:
         
         self.pelvis_velocity = distance.euclidean(last_pelvis_position, self.pelvis_position)/seconds_from_last_frame 
         # f12 is velocity of hips over time period
-       lhip_velocity = distance.euclidean(last_lhip_position, self.lhip_position)/seconds_from_last_frame
+        lhip_velocity = distance.euclidean(last_lhip_position, self.lhip_position)/seconds_from_last_frame
         rhip_velocity = distance.euclidean(last_rhip_position, self.rhip_position)/seconds_from_last_frame
-        self.f12 = (lhand_velocity + rhip_velocity)/2
-        print(f"avg hips velocity from last frame on frame {self.frame}: {self.f12}")       
+        self.f12 = (lhip_velocity + rhip_velocity)/2
         # f13 is avg velocity of hands
         lhand_velocity = distance.euclidean(last_lhand_position, self.lhand_position)/seconds_from_last_frame
         rhand_velocity = distance.euclidean(last_rhand_position, self.rhand_position)/seconds_from_last_frame
         self.f13 = (lhand_velocity + rhand_velocity)/2
-        print(f"hips velocity from last frame on frame {self.frame}: {self.f12}")
-        print(f"avg velocity from last frame on frame {self.frame}: {self.f13}")
         
     def get_velocities(self):
         """
@@ -415,22 +412,18 @@ class CAERFrameFeatures:
         """
         previous_pelvis_velocity = previous_frame_velocities[2]
         previous_hands_velocity = previous_frame_velocities[1]
-previous_hips_velocity = previous_frame_velocity[0]
+        previous_hips_velocity = previous_frame_velocities[0]
         # f11 is deceleration of pelvis
         # f16 is acceleration of hands
-        # f15 is acceleration of hips (is still pelvis, needs to be changed)
+        # f15 is acceleration of hips 
         if self.frame == 0:
             self.f11 = 0
             self.f15 = 0
             self.f16 = 0
         else:
             self.f11 = -(self.pelvis_velocity - previous_pelvis_velocity)/((self.frame - last_frame)/30.0)
-            self.f15 = (self.hips_velocity - previous_hips_velocity)/((self.frame - last_frame)/30.0)
+            self.f15 = (self.f12 - previous_hips_velocity)/((self.frame - last_frame)/30.0)
             self.f16 = (self.f13 - previous_hands_velocity)/((self.frame - last_frame)/30.0)
-        
-        print(f"pelvis deceleration from last frame on frame {self.frame}: {self.f11}")
-        print(f"hands accceleration from last frame on frame {self.frame}: {self.f16}")
-        print(f"hips acceleration since last frame  on frame {self.frame}: {self.f15}")
         
     def get_accelerations(self):
         """
@@ -460,8 +453,7 @@ previous_hips_velocity = previous_frame_velocity[0]
             self.f18 = (self.f15 - previous_pelvis_acceleration)/((self.frame - last_frame)/30.0)
         else:
             self.f18 = 0
-        print(f"Jerk on frame {self.frame}: {self.f18}")
-
+        
     ### Getter and Setter methods
         
     def get_frame(self):
