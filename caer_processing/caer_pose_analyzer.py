@@ -5,7 +5,6 @@ from mediapipe.tasks.python import vision
 from mediapipe.framework.formats import landmark_pb2
 import numpy as np
 import time
-import csv
 import os
 from urllib.request import urlretrieve
 
@@ -98,8 +97,12 @@ class CAERPoseAnalyzer():
         return -1
 
     def create_landmark_options(self):
+        """
+        Define the options needed by Mediapipe Pose Landmarker.
+            Params: None
+            Returns: options (mediapipe.tasks.python.vision.PoseLandmarkerOptions): The defined options
+        """
         landmark_path = self.check_pose_landmark_file()
-        # define Mediapipe pose landmark detector's options
         base_options = python.BaseOptions(model_asset_path=landmark_path, delegate="GPU")
         options = vision.PoseLandmarkerOptions(
             base_options=base_options,
@@ -116,8 +119,8 @@ class CAERPoseAnalyzer():
         """
         Analyzes a video file or webcam stream and detects human poses frame by frame using MediaPipe Pose. 
 
-        Args:
-            path (str): The path to the video file or '0' for webcam stream.
+        Paramss:
+            path (String): The path to the video file or '0' for webcam stream.
         Returns:
             None
         """
@@ -180,7 +183,7 @@ class CAERPoseAnalyzer():
         splitted_path = self.video_path.split("/")
         chars_to_cut_off = len(splitted_path[len(splitted_path)-1])
         new_video_path = self.video_path[:-chars_to_cut_off]
-        file_name = new_video_path + splitted_path[len(splitted_path)-1]+ f"_posedata.csv"
+        file_name = new_video_path + splitted_path[len(splitted_path)-1]+ "_posedata.csv"
         # actually write to the csv file
         if os.path.isfile(file_name):
             file = open(file_name, 'a', newline='')

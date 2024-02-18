@@ -11,9 +11,7 @@ Steps to start the extraction:
 2. Add CAER directory to your PATH as CAER_DIR
 3. Clone repository to your local file system 
 4. run "pose_processing.py" to start pose extraction for every videos of these datasets, they get saved in csv files in ever video directory
-5. (NOT FULLY IMPLEMENTED, SEE STEP 5a): start "caer_processing/caer_feature_extractor.py" to extract Laban elements out of every csv file
-    5a. Element extraction is not yet implemented for every video file. Currently the "caer_feature_extractor.py" only uses the local "CAER_pose_example.csv" file
-
+5. : start "caer_processing/caer_feature_extractor.py" to extract Laban elements out of every csv file
 Currently implemented:
     - pose extraction from CANDOR into csv files
     - pose extraction of CAER into csv files
@@ -22,8 +20,6 @@ Currently implemented:
     - Laban element calculation for CAER files
 
 ToDo:
-    - create system to extract Laban elements out of every video csv file
-    - bundle the dataframes for every video of an emotion into 1 csv file
     - Use these dataframes to get an overview of the specific values for every emotion
     - Use these dataframes to calculate Laban components for the elements
     - Train a Neural Network ising the pose data, the elements (and the emotions as labels)

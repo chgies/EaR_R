@@ -241,7 +241,7 @@ class FrameWindow:
         element_columns.append("f22_min")
         f22_max = np.max(self.f22_array)
         element_values.append(f22_max)
-        element_columns.append("f22_miax")
+        element_columns.append("f22_max")
         f22_mean = np.mean(self.f22_array)
         element_values.append(f22_mean)
         element_columns.append("f22_mean")
@@ -277,5 +277,4 @@ class FrameWindow:
         element_columns.append("f25_mean")
         element_values = [element_values]
 
-        elements_dataframe = pd.DataFrame(data=element_values,columns=element_columns)
-        print(elements_dataframe)
+        self.elements_dataframe = pd.DataFrame(data=element_values,columns=element_columns)

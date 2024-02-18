@@ -3,6 +3,7 @@ import tensorflow as tf
 import concurrent.futures
 from candor_processing.candor_pose_analyzer import CANDORPoseAnalyzer
 from candor_processing.datamanager_candor import get_biggest_files
+from candor_processing.datamanager_candor import get_candor_directory
 from caer_processing.caer_pose_analyzer import CAERPoseAnalyzer
 from caer_processing.datamanager_caer import get_caer_movie_files
 from itertools import repeat
@@ -14,11 +15,11 @@ def test_candor(landmark_type):
     in every frame. You can change the max amount of concurrent processes by changing the 'Max_workers' value in the
     ProcessPoopExecutor - calling line
     
-    Parameters:
+    Params:
         landmark_type (String): The Mediapipe pose landmark model
     
     Returns:
-        -
+        None
     """
 
     # get a list of all videos that still have to be analyzed
@@ -49,7 +50,7 @@ def test_caer(landmark_type):
 
     # get a list of all videos that still have to be analyzed
     print("Gathering information about the video files in CAER dataset. Please wait...")
-    videolist = get_caer_movie_files()
+    videolist = get_caer_movie_files(get_candor_directory())
     
     # for testing purposes use this line instead of the former line (on linux, on windows change path accordingly):
     #videolist = "/mnt/g/Abschlussarbeit_Datasets/CAER/test/Anger/001.avi",

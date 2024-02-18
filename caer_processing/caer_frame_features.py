@@ -304,8 +304,14 @@ class CAERFrameFeatures:
         centroid_y_movement = self.centroid_position[1] - previous_centroid[1]
         centroid_z_movement = self.centroid_position[2] - previous_centroid[2]
 
-        centroid_movement = (centroid_x_movement,centroid_y_movement, centroid_z_movement)
+        centroid_movement = [centroid_x_movement,centroid_y_movement, centroid_z_movement]
         if self.frame > 0:
+            if centroid_movement[0] == 0.0:
+                centroid_movement[0] = 1
+            if centroid_movement[1] == 0.0:
+                centroid_movement[1] = 1
+            if centroid_movement[2] == 0.0:
+                centroid_movement[2] = 1
             self.f10 = (face_movement[0]/centroid_movement[0], face_movement[1]/centroid_movement[1], face_movement[2]/centroid_movement[2])
         
     def calc_velocities(self, previous_frame_points_list, last_frame):

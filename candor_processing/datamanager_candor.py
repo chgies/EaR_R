@@ -1,5 +1,4 @@
 import os
-import pandas as pd
 from dotenv import load_dotenv
 
 CANDOR_DIR = None
@@ -8,6 +7,18 @@ load_dotenv()
 # Get CANDOR PATH variable and standardize it
 CANDOR_DIR = (os.getenv("CANDOR_DIR").replace("\\","/") + "/").replace("//","/")
 print(f"Candor directory: {CANDOR_DIR}")
+
+def get_candor_directory():
+    """
+    Return local path of CANDOR dataset
+    
+    Params:
+        None
+    
+    Returns:
+        CANDOR_DIR (String): The path of CANDOR dataset as String
+    """
+    return CANDOR_DIR
 
 # def list all directories in a path
 def list_directories(path):
