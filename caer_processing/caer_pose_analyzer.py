@@ -19,7 +19,6 @@ class CAERPoseAnalyzer():
         self.landmark_type = landmark_type
         self.landmark_options = self.create_landmark_options()
         self.video_path = video_path
-        print(f"VIDEO PATH: {self.video_path}")
         self.analyze_video()
         
     def check_pose_landmark_file(self):
@@ -153,7 +152,7 @@ class CAERPoseAnalyzer():
                 result = landmarker.detect_for_video(mp_image, self.timestamp_ms)
                         
                 self.output_window = cv2.cvtColor(
-                    self.draw_landmarks(frame, image, result), cv2.COLOR_RGB2BGR)
+                    self.draw_landmarks(frame, image, result), cv2.COLOR_BGR2RGB)
                 
                 if self.output_window is not None:
                     cv2.imshow("MediaPipe Pose Landmark", self.output_window)
@@ -202,8 +201,8 @@ class CAERPoseAnalyzer():
         Draws landmarks on the given image using the results from pose estimation.
 
         Args:
-            image (numpy.ndarray): The input image.
             frame (int): The current video frame 
+            image (numpy.ndarray): The input image.
             results (mediapipe.python.solution_base.SolutionOutputs): The pose estimation results.
 
         Returns:
@@ -211,7 +210,6 @@ class CAERPoseAnalyzer():
         """
 
         pose_landmarks_list = results.pose_landmarks
-
         annotated_image = np.copy(image)
         
         # draw poses on opencv window.

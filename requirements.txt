@@ -6,3 +6,4 @@ dotenv
 scipy
 shapely
 mediapipe
+pytorch

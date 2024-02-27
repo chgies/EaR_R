@@ -12,7 +12,7 @@ class CAERFeatureExtractor:
     in Aristidou et al. 2015 (see reference directory). After that, the correspondent Laban components get calculated to
     make them usable for machine learning
     """
-    def __init__(self, path_to_csv_file):
+    def __init__(self, input_data, arg_is_file = True):
         """
         Constructor for this class.
 
@@ -21,12 +21,18 @@ class CAERFeatureExtractor:
         Returns:
             None
         """
-        self.path_to_csv_file = path_to_csv_file
+        self.path_to_csv_file = input_data
         self.frame_feature_array = []
         self.element_dataframes = pd.DataFrame(columns=['f2_min', 'f2_max', 'f2_mean', 'f2_std', 'f3_min', 'f3_max', 'f3_mean', 'f3_std', 'f4_min', 'f4_max', 'f4_mean', 'f4_std', 'f5_min', 'f5_max', 'f5_mean', 'f5_std', 'f8_min', 'f8_max', 'f8_mean', 'f8_std', 'f10_min', 'f10_max', 'f10_mean', 'f11_num_peaks', 'f12_min', 'f12_max', 'f12_std', 'f13_min', 'f13_max', 'f13_std', 'f15_min', 'f15_std', 'f16_min', 'f16_std', 'f18_min', 'f18_std', 'f19_min', 'f19_max', 'f19_mean', 'f19_std', 'f20_min', 'f20_max', 'f20_mean', 'f20_std', 'f22_min', 'f22_max', 'f22_mean', 'f22_std', 'f23_min', 'f23_max', 'f23_mean', 'f23_std', 'f24_min', 'f24_max', 'f24_mean', 'f24_std', 'f25_mean'])
-        self.csv_data = self.load_csv_into_memory()
+        if arg_is_file:
+            self.csv_data = self.load_csv_into_memory()
+        else:
+            self.csv_data = input_data
         self.convert_coords_to_laban()
-        self.calc_laban_elements_of_video()
+        if arg_is_file:
+            self.calc_laban_elements_of_video()
+        else:
+            self.calc_laban_elements_of_ivestream_frame_buffer()
 
     def load_csv_into_memory(self):
         """
@@ -50,17 +56,40 @@ class CAERFeatureExtractor:
             element_dataframes (List): a list of Pandas Dataframes of every sliding window created
         """    
         return self.element_dataframes
-    
+
+    def calc_laban_elements_of_ivestream_frame_buffer(self):
+        """
+        Build a frame window out of give data from a livestream.
+        Use the calculated laban elements saved in "self.frame_feature_array" variable to create
+        a sliding window where the data for a specific amount of video frames is saved.
+        This is used to calculate some statistical data for every element for further processing 
+
+            Params:
+                None
+            Returns:
+                None
+
+        """
+
+        frame_window = FrameWindow()
+        max_index = len(self.frame_feature_array)
+        for frame_index in range(0, max_index):
+            frame_window.frame_buffer.append(self.frame_feature_array[frame_index])
+            frame_window.calculate_elements_of_frame_buffer()
+            dataframes_to_combine = self.element_dataframes, frame_window.elements_dataframe
+            self.element_dataframes = pd.concat(dataframes_to_combine)
+
     def calc_laban_elements_of_video(self):
         """
+        Build multiple frame windows out of a video file.
         Use the calculated laban elements saved in "self.frame_feature_array" variable to create
         a sliding window datastructure where the data for a specific amount of video frames is saved.
         This is used to calculate some statistical data for every element for further processing 
         
-        Params:
-            None
-        Returns:
-            None
+            Params:
+                None
+            Returns:
+                None
         """
         if not self.csv_data.empty:
             window_size = 45
@@ -85,20 +114,6 @@ class CAERFeatureExtractor:
                             dataframes_to_combine = self.element_dataframes, frame_window.elements_dataframe
                             self.element_dataframes = pd.concat(dataframes_to_combine)
                             
-                            
-                """
-                USE THIS CODE LATER IN OTHER FUNCTION WHEN A SLIDING WINDOW IS NEEDED
-
-                frame_buffer.append(self.frame_feature_array[frame_index])
-                if len(frame_buffer) == window_size:
-                    # Perform calculations on the current window of frames
-                    #print(len(frame_buffer))
-                    self.calculate_elements_of_frame_buffer(frame_buffer)
-                    #print("Processed Data:", processed_data)
-
-                    frame_buffer.pop(0)  # Slide the window by removing the oldest frame
-                """
-        
     def convert_coords_to_laban(self):
         """
         Converting the Mediapipe coordinates previously loaded into memory into Laban elements used to determine
