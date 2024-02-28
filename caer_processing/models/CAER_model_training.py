@@ -1,10 +1,9 @@
 import pandas as pd
 import numpy as np
-import os
 import torch
 from torch import nn
 from torch.utils.data import DataLoader,TensorDataset
-import EmotionV0
+from EmotionV0 import EmotionV0
 
 if torch.cuda.is_available():
     device = "cuda"
@@ -22,8 +21,8 @@ def train_and_test_model():
     NUM_CLASSES = 7
     NUM_FEATURES = 57
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    train_file_path = "/###/CAER_CSV/extracted_train_values.csv"  # Replace with the actual path to your CSV file
-    test_file_path = "/###/CAER_CSV/extracted_test_values.csv"  # Replace with the actual path to your CSV file
+    train_file_path = "path_to/extracted_train_values.csv"  # Replace with the actual path to your CSV file
+    test_file_path = "path_to/extracted_test_values.csv"  # Replace with the actual path to your CSV file
     df_train = pd.read_csv(train_file_path, header=None)
     X_train_np_array = np.asarray(df_train.iloc[1:, 1:-1].values, dtype=np.float32)
     y_train_np_array = np.asarray(df_train.iloc[1:, -1:].values, dtype=np.float32)
@@ -44,9 +43,9 @@ def train_and_test_model():
     X_test, y_test = X_test.to(device), y_test.to(device)
     torch.manual_seed(42)
     ### Training
-    train_model = EmotionV0(NUM_FEATURES,104,NUM_CLASSES).to(device)
-    train_model(train_model, NUM_FEATURES, 104, NUM_CLASSES, train_dl, num_of_epochs)
-    # After training the model using train_model function,
+    training_model = EmotionV0(NUM_FEATURES,104,NUM_CLASSES).to(device)
+    train_model(training_model, NUM_FEATURES, 104, NUM_CLASSES, train_dl, num_of_epochs)
+    save_model_weights(training_model)
     # Evaluate the model on the validation set
     val_model = EmotionV0(NUM_FEATURES,104,NUM_CLASSES).to(device)
     load_model_weights(val_model)
@@ -102,7 +101,7 @@ def train_model(model, input_size, hidden_size, output_size, data_loader, num_ep
     print('Training complete!')
 
 # Function to save the model weights
-def save_model_weights(model, filepath='CAER_model_weights.pth'):
+def save_model_weights(model, filepath='./caer_processing/models/CAER_model_weights.pth'):
     """
     Save the trained weights into a file
         Params:
@@ -115,7 +114,7 @@ def save_model_weights(model, filepath='CAER_model_weights.pth'):
     print(f'Model weights saved to {filepath}')
 
 # Function to load the model weights
-def load_model_weights(model, filepath='CAER_model_weights.pth'):
+def load_model_weights(model, filepath='./caer_processing/models/CAER_model_weights.pth'):
     """
     Load saved weights into the model
         Params:
@@ -124,7 +123,7 @@ def load_model_weights(model, filepath='CAER_model_weights.pth'):
     Returns:
         None
     """
-    model.load_state_dict(torch.load(filepath))
+    model.load_state_dict(torch.load(filepath, map_location=torch.device(device)))
     print(f'Model weights loaded from {filepath}')
 
 # Function to evaluate the model on a validation set
