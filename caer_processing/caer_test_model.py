@@ -6,9 +6,9 @@ import mediapipe as mp
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 from mediapipe.framework.formats import landmark_pb2
-from models.CAER_model_training import EmotionV0
+from models.EmotionV0 import EmotionV0
 from caer_feature_extractor import CAERFeatureExtractor
-import os
+
 current_points = []
 detector = 0
 emotion_model = 0
@@ -85,6 +85,7 @@ def prepare_loop():
 def run_video_loop():
     global detector, current_points
     FRAME_BUFFER_MAX_SIZE = 45
+    frame_buffer_full = False
     frame_buffer = []
     frame_index = 0
     cap = cv2.VideoCapture(0)
@@ -100,7 +101,6 @@ def run_video_loop():
         if detection_result is not None:
             output_window = cv2.cvtColor(
                     draw_landmarks(frame_index, image, detection_result), cv2.COLOR_BGR2RGB)
-            frame_index += 1
         else:
             cv2.imshow("MediaPipe Pose Landmark", image)
             continue
@@ -116,9 +116,14 @@ def run_video_loop():
                 emotion = emotion_model(emotion_as_tensor)
                 print(emotion)
                 current_points = []
+                frame_buffer_full = True
+                frame_index = 0
         if output_window is not None:
             cv2.imshow("MediaPipe Pose Landmark", cv2.cvtColor(output_window, cv2.COLOR_RGB2BGR))
-        frame_index += 1
+        if not frame_buffer_full:
+            frame_index += 1
+        else:
+            frame_buffer_full = False
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
     cap.release()
