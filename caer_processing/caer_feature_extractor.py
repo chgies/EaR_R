@@ -2,8 +2,8 @@ import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
 import pandas as pd
-from caer_frame_features import CAERFrameFeatures
-from frame_window import FrameWindow
+from caer_processing.caer_frame_features import CAERFrameFeatures
+from caer_processing.frame_window import FrameWindow
 
 class CAERFeatureExtractor:
     """

@@ -10,10 +10,9 @@ Steps to start the extraction:
 1. Add CANDOR directory to your PATH as CANDOR_DIR
 2. Add CAER directory to your PATH as CAER_DIR
 3. Clone repository to your local file system 
-4. Run "pose_processing.py" to start pose extraction for every videos of these datasets, they get saved in csv files in ever video directory
-5. Start "caer_processing/run_feature_extraction.py" to extract Laban elements out of every csv file
-6. (STARTED) Run "caer_processing/models/CAER_model_training.py" to train your model
-7. Run "caer_processing/caer_test_model" to test the model with your webcam
+4. Run "pose_processing.py" to start pose extraction for every video, all poses get extracted, recalculated and saved as csv files in CAER "train", "test" and "validation" directories
+6. Add the path to extracted csv files to "caer_processing/models/CAER_model_training.py" and run it to train your model
+7. Run "caer_test_model" to test the model with your webcam
 
 Currently implemented:
     - pose extraction from CANDOR into csv files

@@ -6,6 +6,8 @@ from candor_processing.datamanager_candor import get_biggest_files
 from candor_processing.datamanager_candor import get_candor_directory
 from caer_processing.caer_pose_analyzer import CAERPoseAnalyzer
 from caer_processing.datamanager_caer import get_caer_movie_files
+from caer_processing.datamanager_caer import get_caer_directory
+from caer_processing.run_caer_feature_extraction import extract_all_csv_values
 from itertools import repeat
 
 def test_candor(landmark_type):
@@ -50,11 +52,10 @@ def test_caer(landmark_type):
 
     # get a list of all videos that still have to be analyzed
     print("Gathering information about the video files in CAER dataset. Please wait...")
-    videolist = get_caer_movie_files(get_candor_directory())
+    videolist = get_caer_movie_files(get_caer_directory())
     
     # for testing purposes use this line instead of the former line (on linux, on windows change path accordingly):
-    #videolist = "/mnt/g/Abschlussarbeit_Datasets/CAER/test/Anger/001.avi",
-    
+    #videolist = ["G:/Abschlussarbeit_Datasets/CAER/test/Anger/0001.avi"]
     # start analyzing videos on video_list
     videos_to_analyze = len(videolist)
     print(f"{videos_to_analyze} videos still have to be analyzed. Working...")
@@ -65,20 +66,20 @@ def test_caer(landmark_type):
             if result != -1:
                 analyzed_videos += 1
                 print(f"{analyzed_videos} of {videos_to_analyze} videos have been analyzed.")
-    
+    print("All pose coordinates have been extracted from CAER dataset.")
+    print("Extracting the Laban features and components from found pose data. Please Wait...")
+    extract_all_csv_values()
+
 if __name__ == "__main__":
 
     # Assuring if GPU is used
-    print(torch.version.cuda)
-    print(torch.cuda.is_available())
-    print(torch.cuda.device_count())
-    print(f"CUDA-TF: {tf.test.is_built_with_cuda()}")
-    print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
-
+    print(f"PyTorch version built with CUDA support: {torch.version.cuda}")
+    print(f"CUDA is available for PyTorch: {torch.cuda.is_available()}")
+    print(f"Found CUDA devices: {torch.cuda.device_count()}")
     
     # here you can define the landmark pose extraction model of mediapipe
     # Possible values: 'lite', 'full', 'heavy'
     landmark_type = "lite"
  
-    test_candor(landmark_type)
+#    test_candor(landmark_type)
     test_caer(landmark_type)

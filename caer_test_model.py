@@ -6,8 +6,8 @@ import mediapipe as mp
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 from mediapipe.framework.formats import landmark_pb2
-from models.EmotionV0 import EmotionV0
-from caer_feature_extractor import CAERFeatureExtractor
+from caer_processing.models.EmotionV0 import EmotionV0
+from caer_processing.caer_feature_extractor import CAERFeatureExtractor
 
 current_points = []
 detector = 0

@@ -1,9 +1,9 @@
 import os
 import pandas as pd
 import concurrent.futures
-from datamanager_caer import get_caer_csv_files
-from datamanager_caer import get_caer_directory
-from caer_feature_extractor import CAERFeatureExtractor
+from caer_processing.datamanager_caer import get_caer_csv_files
+from caer_processing.datamanager_caer import get_caer_directory
+from caer_processing.caer_feature_extractor import CAERFeatureExtractor
 
 
 def extract_values_in_dir(csv_directory):
@@ -81,4 +81,4 @@ def extract_all_csv_values():
                 analyzed_directories += 7
                 print(f"{analyzed_directories} of {len(csv_dir_list)} directories have been analyzed.")
 
-extract_all_csv_values()
+    print("All directories have been analyzed. Data hase been saved as csv files in CAER directory.")
