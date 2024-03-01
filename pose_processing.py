@@ -2,12 +2,14 @@ import torch
 import concurrent.futures
 from candor_processing.candor_pose_analyzer import CANDORPoseAnalyzer
 from candor_processing.datamanager_candor import get_biggest_files
-from candor_processing.datamanager_candor import get_candor_directory
 from caer_processing.caer_pose_analyzer import CAERPoseAnalyzer
 from caer_processing.datamanager_caer import get_caer_movie_files
 from caer_processing.datamanager_caer import get_caer_directory
 from caer_processing.run_caer_feature_extraction import extract_all_csv_values
 from itertools import repeat
+import os
+
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 def test_candor(landmark_type):
     """
@@ -53,8 +55,8 @@ def test_caer(landmark_type):
     print("Gathering information about the video files in CAER dataset. Please wait...")
     videolist = get_caer_movie_files(get_caer_directory())
     
-    # for testing purposes use this line instead of the former line (on linux, on windows change path accordingly):
-    #videolist = ["G:/Abschlussarbeit_Datasets/CAER/test/Anger/0001.avi"]
+    # for testing purposes use this line instead of the former line (on windows, on linux change path accordingly):
+    #videolist = ["F:/Abschlussarbeit_Datasets/CAER/test/Anger/0001.avi"]
     # start analyzing videos on video_list
     videos_to_analyze = len(videolist)
     print(f"{videos_to_analyze} videos still have to be analyzed. Working...")
