@@ -1,5 +1,4 @@
 import torch
-import tensorflow as tf
 import concurrent.futures
 from candor_processing.candor_pose_analyzer import CANDORPoseAnalyzer
 from candor_processing.datamanager_candor import get_biggest_files
