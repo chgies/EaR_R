@@ -1,5 +1,4 @@
 import os
-from dotenv import load_dotenv
 
 CAER_DIR = None
 
