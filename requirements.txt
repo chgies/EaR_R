@@ -1,7 +1,6 @@
 numpy
 opencv-python
 pandas
-python-dotenv
 scipy
 shapely
 mediapipe
