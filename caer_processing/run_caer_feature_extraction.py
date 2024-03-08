@@ -21,6 +21,7 @@ def extract_values_in_dir(csv_directory):
     csv_file_list = get_caer_csv_files(csv_directory)
     csv_dir_list = []
     for csv_file in csv_file_list:
+        csv_file = csv_file.replace("\\","/").replace("//","/")
         splitted_path = csv_file.split("/")
         if "/".join(splitted_path[:len(splitted_path)-1]) not in csv_dir_list:
             csv_dir_list.append("/".join(splitted_path[:len(splitted_path)-1]))
@@ -69,8 +70,9 @@ def extract_all_csv_values():
     csv_file_list = get_caer_csv_files(get_caer_directory())
     csv_dir_list = []
     for csv_file in csv_file_list:
-        splitted_path = csv_file.split("/")
-        if "/".join(splitted_path[:len(splitted_path)-1]) not in csv_dir_list:
+        splitted_path = list(os.path.split(csv_file))
+        splitted_path[0] = splitted_path[0].replace("\\","/").replace("//","/")
+        if splitted_path[0] not in csv_dir_list:
             csv_dir_list.append("/".join(splitted_path[:len(splitted_path)-1]))
     print(f"Extracting Laban elements from {len(csv_file_list)} csv files in {len(csv_dir_list)} directories. Please wait...")
     dirs_to_extract = [csv_dir_list[0].rsplit("/",1)[0],csv_dir_list[10].rsplit("/",1)[0],csv_dir_list[20].rsplit("/",1)[0]]

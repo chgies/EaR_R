@@ -1,9 +1,7 @@
 numpy
 opencv-python
 pandas
-python-dotenv
 scipy
 shapely
 mediapipe
 torch
-tensorflow

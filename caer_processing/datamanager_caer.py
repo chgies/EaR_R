@@ -1,11 +1,9 @@
 import os
-from dotenv import load_dotenv
 
 CAER_DIR = None
-load_dotenv()
 
 # Get CAER PATH variable and standardize it (make it usable regardless of windows or linux os)
-CAER_DIR = (os.getenv("CAER_DIR").replace("\\","/") + "/").replace("//","/")
+CAER_DIR = os.environ["CAER_DIR"]#.replace("\\","/") + "/").replace("//","/")
 print(f"CAER directory: {CAER_DIR}")
 
 def get_caer_directory():

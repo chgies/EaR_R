@@ -9,8 +9,9 @@ Python modules as mentioned in requirements.txt
 Steps to start the extraction:
 1. Add CANDOR directory to your PATH as CANDOR_DIR
 2. Add CAER directory to your PATH as CAER_DIR
-3. Clone repository to your local file system 
-4. Run "run_pose_extraction.py" to start pose extraction for every video, all poses get extracted, recalculated and saved as csv files in CAER "train", "test" and "validation" directories
+3. Clone repository to your local file system
+4. If needed, install required python modules: "python -m pip install -r "./requirements.txt"
+5. Run "pose_processing.py" to start pose extraction for every video, all poses get extracted, recalculated and saved as csv files in CAER "train", "test" and "validation" directories
 6. Add the path to extracted csv files to "caer_processing/models/CAER_model_training.py" and run it to train your model
 7. Run "caer_test_model" to test the model with your webcam
 
