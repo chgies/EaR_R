@@ -125,8 +125,15 @@ class CAERPoseAnalyzer():
         """
         frame = 0
 
-        print(f"Starting analysis of video {self.video_path}")
+        # Skip if already analyzed
+        splitted_path = os.path.split(self.video_path)
+        chars_to_cut_off = len(splitted_path[len(splitted_path)-1])
+        completed_path = self.video_path[:-chars_to_cut_off]
+        completed_file_name = completed_path + "pose_extraction_of_" + f"{splitted_path[len(splitted_path)-1]}".rstrip(".mp4") + "_completed"
+        if os.path.isfile(completed_file_name):
+            return
         
+        print(f"Starting analysis of video {self.video_path}")
         with vision.PoseLandmarker.create_from_options(self.landmark_options) as landmarker:        
             cap = cv2.VideoCapture(self.video_path)
             while cap.isOpened():
@@ -137,11 +144,7 @@ class CAERPoseAnalyzer():
                     # create a "completed" file for pausing analysis of CANDOR dataset when movie file is over.    
                     if frame > 0:
                         self.write_pose_to_csv()
-                        splitted_path = self.video_path.split("/")
-                        chars_to_cut_off = len(splitted_path[len(splitted_path)-1])
-                        completed_path = self.video_path[:-chars_to_cut_off]
-                        file_name = completed_path + "pose_extraction_of_" + f"{splitted_path[len(splitted_path)-1]}".rstrip(".mp4") + "_completed"
-                        file = open(file_name, 'w', newline='')
+                        file = open(completed_file_name, 'w', newline='')
                         file.close()
                     break
 

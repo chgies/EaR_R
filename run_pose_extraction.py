@@ -56,7 +56,7 @@ def test_caer(landmark_type):
     videolist = get_caer_movie_files(get_caer_directory())
     
     # for testing purposes use this line instead of the former line (on windows, on linux change path accordingly):
-    #videolist = ["F:/Abschlussarbeit_Datasets/CAER/test/Anger/0001.avi"]
+    #videolist = ["G:/Abschlussarbeit_Datasets/CAER/test/Anger/0001.avi"]
     # start analyzing videos on video_list
     videos_to_analyze = len(videolist)
     print(f"{videos_to_analyze} videos still have to be analyzed. Working...")
@@ -80,7 +80,7 @@ if __name__ == "__main__":
     
     # here you can define the landmark pose extraction model of mediapipe
     # Possible values: 'lite', 'full', 'heavy'
-    landmark_type = "lite"
+    landmark_type = 'lite'
  
 #    test_candor(landmark_type)
     test_caer(landmark_type)
