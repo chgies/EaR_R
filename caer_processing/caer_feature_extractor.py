@@ -137,7 +137,7 @@ class CAERFeatureExtractor:
                     elif frame_index > 1:
                         last_points_list = self.frame_feature_array[frame_index-1].get_pelvis_and_hands_positions()
                         feature_object.calc_velocities(last_points_list, frame_index-1)
-                        feature_object.calculate_z_movement(self.frame_feature_array[frame_index-e1].get_mp_points())
+                        feature_object.calculate_z_movement(self.frame_feature_array[frame_index-1].get_mp_points())
                         previous_velocities_list = self.frame_feature_array[frame_index-1].get_velocities()
                         feature_object.calc_accelerations(previous_velocities_list, frame_index-1)
                         previous_accelerations_list = self.frame_feature_array[frame_index-1].get_accelerations()

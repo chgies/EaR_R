@@ -95,7 +95,7 @@ class CAERFrameFeatures:
         right_vol = self.calculate_area_of_body("right", full_body_volume_list)
         self.f19 = left_vol + right_vol
 
-        upper_body_points_list = self.points_array[0], self.pelvis_position, points_array[12], points_array[11], points_array[14], points_array[13], points_array[20], points_array[19], points_array[24], points_array[23]
+        upper_body_points_list = self.points_array[0], self.pelvis_position, self.points_array[12], self.points_array[11], self.points_array[14], self.points_array[13], self.points_array[20], self.points_array[19], self.points_array[24], self.points_array[23]
         # f22 is volume of left side
         self.f22 = self.calculate_area_of_body("left", upper_body_points_list)
         # f23 is volume of right side
