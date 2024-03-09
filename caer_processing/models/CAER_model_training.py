@@ -19,7 +19,7 @@ def train_and_test_model():
             None
     """
     NUM_CLASSES = 7
-    NUM_FEATURES = 57
+    NUM_FEATURES = 59
     device = "cuda" if torch.cuda.is_available() else "cpu"
     train_file_path = "path_to/extracted_train_values.csv"  # Replace with the actual path to your CSV file
     test_file_path = "path_to/extracted_test_values.csv"  # Replace with the actual path to your CSV file
@@ -44,7 +44,7 @@ def train_and_test_model():
     torch.manual_seed(42)
     ### Training
     training_model = EmotionV0(NUM_FEATURES,104,NUM_CLASSES).to(device)
-    train_model(training_model, NUM_FEATURES, 104, NUM_CLASSES, train_dl, num_of_epochs)
+    train_model(training_model, train_dl, num_of_epochs)
     save_model_weights(training_model)
     # Evaluate the model on the validation set
     val_model = EmotionV0(NUM_FEATURES,104,NUM_CLASSES).to(device)
@@ -64,7 +64,7 @@ def convert_to_one_hot(labels, num_classes):
     one_hot = torch.nn.functional.one_hot(labels - 1, num_classes).float()
     return one_hot.view(-1, num_classes)
 
-def train_model(model, input_size, hidden_size, output_size, data_loader, num_epochs=100, learning_rate=0.001):
+def train_model(model, data_loader, num_epochs=100, learning_rate=0.001):
     """
     Train the model with the given arguments as parameters
         Params:

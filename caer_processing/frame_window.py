@@ -26,6 +26,7 @@ class FrameWindow:
         self.f23_array = []
         self.f24_array = []
         self.f25_array = []
+        self.z_movement_array = []
         self.frame_buffer = []
         self.elements_dataframe = ""
 
@@ -84,6 +85,7 @@ class FrameWindow:
             self.f23_array.append(frame.get_f23())
             self.f24_array.append(frame.get_f24())
             self.f25_array.append(frame.get_f25())
+            self.z_movement_array.append(frame.get_z_movement())
         
         element_values = []
         element_columns = []
@@ -275,6 +277,12 @@ class FrameWindow:
         f25_mean = np.mean(self.f25_array)
         element_values.append(f25_mean)
         element_columns.append("f25_mean")
+        z_movement_mean = np.mean(self.z_movement_array)
+        element_values.append(z_movement_mean)
+        element_columns.append("z_mean")
+        z_movement_sum = np.sum(self.z_movement_array)
+        element_values.append(z_movement_sum)
+        element_columns.append("z_sum")
         element_values = [element_values]
 
         self.elements_dataframe = pd.DataFrame(data=element_values,columns=element_columns)

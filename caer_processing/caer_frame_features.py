@@ -10,29 +10,28 @@ class CAERFrameFeatures:
         self.frame = frame
 
         # Body components
-        self.f1 = (0.0, 0.0, 0.0)
-        self.f2 = (0.0, 0.0, 0.0)
-        self.f3 = (0.0, 0.0, 0.0)
-        self.f4 = (0.0, 0.0, 0.0)
-        self.f5 = (0.0, 0.0, 0.0)
-        self.f6 = (0.0, 0.0, 0.0)
-        self.f7 = (0.0, 0.0, 0.0)
-        self.f8 = (0.0, 0.0, 0.0)
-
+        self.f3 = 0.0
+        self.f4 = 0.0
+        self.f5 = 0.0
         # Effort components
-        self.f9 = (0.0, 0.0, 0.0)
         self.f10 = (0.0, 0.0, 0.0)
-        self.f11 = (0.0, 0.0, 0.0)
-        self.f12 = (0.0, 0.0, 0.0)
-        self.f13 = (0.0, 0.0, 0.0)
-        self.f14 = (0.0, 0.0, 0.0)
-        self.f15 = (0.0, 0.0, 0.0)
-        self.f16 = (0.0, 0.0, 0.0)
-        self.f17 = (0.0, 0.0, 0.0)
-        self.f18 = 0
-
-        self.centroid_position = (0.0,0.0,0.0)
-        self.face_points_list = []
+        self.f11 = 0.0
+        self.f12 = 0.0
+        self.f13 = 0.0
+        self.f15 = 0.0
+        self.f17 = 0.0
+        self.f18 = 0.0
+        # Shape components
+        self.f19 = 0.0
+        self.f20 = 0.0
+        self.f22 = 0.0
+        self.f23 = 0.0
+        self.f24 = 0.0
+        self.f25 = 1
+        # Auxiliary components
+        self.centroid_position = (0.0, 0.0, 0.0)
+        self.face_and_centroid_points_list = []
+        self.avg_hip_velocity = 0.0
         self.pelvis_velocity = 0.0
         self.face_centroid_movement_correlation = (1,1,1)
         self.pelvis_position = (0.0, 0.0, 0.0)
@@ -40,19 +39,14 @@ class CAERFrameFeatures:
         self.rhand_position = (0.0, 0.0, 0.0)
         self.lhip_position = (0.0, 0.0, 0.0)
         self.rhip_position = (0.0, 0.0, 0.0)
-        # Shape components
-        self.f19 = (0.0, 0.0, 0.0)
-        self.f20 = (0.0, 0.0, 0.0)
-        self.f21 = (0.0, 0.0, 0.0)
-        self.f22 = (0.0, 0.0, 0.0)
-        self.f23 = (0.0, 0.0, 0.0)
-        self.f24 = (0.0, 0.0, 0.0)
-        self.f25 = 1
+        self.points_array = []
+        self.z_movement = 0.0
 
-        # Space components
-        self.f26 = (0.0, 0.0, 0.0)
-        self.f27 = (0.0, 0.0, 0.0)
-
+    def calculate_z_movement(self, last_points_array):
+        for point in self.points_array:
+            for last_point in last_points_array:
+                self.z_movement += point[2]/last_point[2]
+        
     def load_dataframe_into_object(self, dataframe):
         """
         Loading data from a given Pands Dataframe into the local Laban elements of
@@ -68,49 +62,40 @@ class CAERFrameFeatures:
         """
         raw_df_data = dataframe.to_dict(orient='records')
         self.frame = raw_df_data[0]['frame']
-        points_array = []
         for row in raw_df_data:
             new_point = (row['x'],row['y'],row['z'])
-            points_array.append(new_point)
+            self.points_array.append(new_point)
         
         ##### calculating necessary f points as mentioned in ./references/Feature_Tabellen.pdf
-        self.lhand_position = points_array[19]
-        self.rhand_position = points_array[18]
-        # f1 is feet to hips distance, avg of both sides
-        self.f1 = (distance.euclidean(points_array[28],points_array[24]) + distance.euclidean(points_array[27],points_array[23]))/2
-        # f2 is hands to shoulders distance, avg of both sides
-        self.f2 = (distance.euclidean(points_array[18],points_array[12]) + distance.euclidean(points_array[19],points_array[11]))/2
+        self.lhand_position = self.points_array[20]
+        self.rhand_position = self.points_array[19]
         # f3 is rhand to lhand distance
         self.f3 = distance.euclidean(self.lhand_position,self.rhand_position)
         # f4 is hands to head distance, avg of both sides
-        self.f4 = (distance.euclidean(self.lhand_position,points_array[0]) + distance.euclidean(self.rhand_position,points_array[0]))/2
+        self.f4 = (distance.euclidean(self.lhand_position,self.points_array[0]) + distance.euclidean(self.rhand_position,self.points_array[0]))/2
         # f5 is pelvis height, distance of pelvis to ground
         # use middle points of ankles as ground and hips as pelvis
-        ankle_midpoint = (((points_array[28][0] + points_array[28][0])/2), ((points_array[28][1] + points_array[28][1])/2), ((points_array[28][2] + points_array[28][2])/2))
-        self.lhip_position = points_array[24]
-        self.rhip_position = points_array[23]
-        self.pelvis_position = (((points_array[24][0] + points_array[23][0])/2), ((points_array[24][1] + points_array[23][1])/2), ((points_array[24][2] + points_array[23][2])/2))
+        ankle_midpoint = (((self.points_array[28][0] + self.points_array[27][0])/2), ((self.points_array[28][1] + self.points_array[27][1])/2), ((self.points_array[28][2] + self.points_array[27][2])/2))
+        self.lhip_position = self.points_array[24]
+        self.rhip_position = self.points_array[23]
+        self.pelvis_position = (((self.points_array[24][0] + self.points_array[23][0])/2), ((self.points_array[24][1] + self.points_array[23][1])/2), ((self.points_array[24][2] + self.points_array[23][2])/2))
         self.f5 = distance.euclidean(ankle_midpoint, self.pelvis_position)
-        
-        root_point_sum_x = points_array[11][0] + points_array[12][0] + points_array[23][0] + points_array[24][0]
-        root_point_sum_y = points_array[11][1] + points_array[12][1] + points_array[23][1] + points_array[24][1]
-        root_point_sum_z = points_array[11][2] + points_array[12][2] + points_array[23][2] + points_array[24][2]
+        # calculate centroid position, here: center of trapezoid of shoulders and hips        
+        root_point_sum_x = self.points_array[11][0] + self.points_array[12][0] + self.points_array[23][0] + self.points_array[24][0]
+        root_point_sum_y = self.points_array[11][1] + self.points_array[12][1] + self.points_array[23][1] + self.points_array[24][1]
+        root_point_sum_z = self.points_array[11][2] + self.points_array[12][2] + self.points_array[23][2] + self.points_array[24][2]
         self.centroid_position = (root_point_sum_x/4,root_point_sum_y/4,root_point_sum_z/4)
 
-        self.face_points_list = points_array[:10]    
-        self.face_points_list.append(self.centroid_position)
-        # f7 is distance of centroid to ground
-        self.f7 = (distance.euclidean(self.centroid_position,points_array[27]) + distance.euclidean(self.centroid_position,points_array[28]))/2        
-        # f8 is distance pelvis to centroid
-        self.f8 = distance.euclidean(self.pelvis_position,self.centroid_position)
+        self.face_and_centroid_points_list = self.points_array[:10]    
+        self.face_and_centroid_points_list.append(self.centroid_position)
         # f19 is bounding volume of all joints
-        full_body_volume_list = [points_array[0], self.pelvis_position]
-        full_body_volume_list += points_array
+        full_body_volume_list = [self.points_array[0], self.pelvis_position]
+        full_body_volume_list += self.points_array
         left_vol = self.calculate_area_of_body("left", full_body_volume_list)
         right_vol = self.calculate_area_of_body("right", full_body_volume_list)
         self.f19 = left_vol + right_vol
 
-        upper_body_points_list = points_array[0], self.pelvis_position, points_array[12], points_array[11], points_array[14], points_array[13], points_array[16], points_array[15], points_array[23], points_array[24]
+        upper_body_points_list = self.points_array[0], self.pelvis_position, points_array[12], points_array[11], points_array[14], points_array[13], points_array[20], points_array[19], points_array[24], points_array[23]
         # f22 is volume of left side
         self.f22 = self.calculate_area_of_body("left", upper_body_points_list)
         # f23 is volume of right side
@@ -124,11 +109,11 @@ class CAERFrameFeatures:
         """
 
         # f24 is distance head to root joint
-        self.f24 = distance.euclidean(points_array[0], self.pelvis_position)
+        self.f24 = distance.euclidean(self.points_array[0], self.pelvis_position)
    
         # f25 is relation of hand's position to body
-        horizontal_head_level = self.face_points_list[0][1]
-        for point in self.face_points_list:
+        horizontal_head_level = self.face_and_centroid_points_list[0][1]
+        for point in self.face_and_centroid_points_list:
             if point[1] > horizontal_head_level:
                 horizontal_head_level = point[1]
         if self.lhand_position[1] > horizontal_head_level or self.rhand_position[1] > horizontal_head_level: 
@@ -260,7 +245,7 @@ class CAERFrameFeatures:
     def get_rhip_position(self):
         return self.rhip_position
  
-    def get_ph_positions(self):
+    def get_pelvis_and_hands_positions(self):
         """
         Return the pelvis and hands positions for this frame
 
@@ -274,29 +259,30 @@ class CAERFrameFeatures:
         return points_list
     
     def get_face_points_list(self):
-        return self.face_points_list
+        return self.face_and_centroid_points_list
 
-    def calc_head_body_angle(self, previous_points_list):
+    def calc_head_orientation(self, previous_points_list):
         """
-        Calculate the correlation between head and body orientation to find "FLOW" Lanan element. Finds a list containing the ratio of face and centroid movement in x,y and z axis.
+        Calculate the correlation between head and body orientation to find "Effort:Space" Laban element. 
+        Finds a tuple containing the ratio of face and centroid movement in x,y and z axis.
         Params:
             previous_points_list (list of tuples): A list containing the mediapipe face points and the centroid from last frame
         Returns:
             None
         """
         previous_face_list = previous_points_list[1:]
-        previous_face_list[:2]
+        #previous_face_list[:2]
         previous_centroid = previous_points_list[len(previous_points_list)-1]
         summed_x_change = 0
         summed_y_change = 0
         summed_z_change = 0        
         if self.frame > 0:
             for index in range(0,len(previous_face_list)-1):
-                summed_x_change += (self.face_points_list[index][0] - previous_face_list[index][0])
+                summed_x_change += (self.face_and_centroid_points_list[index][0] - previous_face_list[index][0])
                 
-                summed_y_change += (self.face_points_list[index][1] - previous_face_list[index][1])
+                summed_y_change += (self.face_and_centroid_points_list[index][1] - previous_face_list[index][1])
 
-                summed_z_change += (self.face_points_list[index][2] - previous_face_list[index][2])
+                summed_z_change += (self.face_and_centroid_points_list[index][2] - previous_face_list[index][2])
 
         face_movement = (summed_x_change, summed_y_change, summed_z_change)
 
@@ -336,13 +322,14 @@ class CAERFrameFeatures:
             last_lhand_position = previous_frame_points_list[2]
             last_lhip_position = previous_frame_points_list[3]
             last_rhip_position = previous_frame_points_list[4]
-            seconds_from_last_frame = (self.frame - last_frame)/30
+            seconds_from_last_frame = (self.frame - last_frame)/30.0
         
-        self.pelvis_velocity = distance.euclidean(last_pelvis_position, self.pelvis_position)/seconds_from_last_frame 
+        self.f12 = distance.euclidean(last_pelvis_position, self.pelvis_position)
+        self.pelvis_velocity = self.f12/seconds_from_last_frame 
         # f12 is velocity of hips over time period
         lhip_velocity = distance.euclidean(last_lhip_position, self.lhip_position)/seconds_from_last_frame
         rhip_velocity = distance.euclidean(last_rhip_position, self.rhip_position)/seconds_from_last_frame
-        self.f12 = (lhip_velocity + rhip_velocity)/2
+        self.avg_hip_velocity = (lhip_velocity + rhip_velocity)/2
         # f13 is avg velocity of hands
         lhand_velocity = distance.euclidean(last_lhand_position, self.lhand_position)/seconds_from_last_frame
         rhand_velocity = distance.euclidean(last_rhand_position, self.rhand_position)/seconds_from_last_frame
@@ -356,7 +343,7 @@ class CAERFrameFeatures:
         Returns:
             velocities_list: A list containing the velocity of the hips and hands 
         """
-        velocities_list = [self.f12, self.f13, self.pelvis_velocity]
+        velocities_list = [self.avg_hip_velocity, self.f13, self.pelvis_velocity]
         return velocities_list
 
     def calc_accelerations(self, previous_frame_velocities, last_frame):
@@ -368,20 +355,20 @@ class CAERFrameFeatures:
         Returns:
             None
         """
-        previous_pelvis_velocity = previous_frame_velocities[2]
-        previous_hands_velocity = previous_frame_velocities[1]
         previous_hips_velocity = previous_frame_velocities[0]
+        previous_hands_velocity = previous_frame_velocities[1]
+        previous_pelvis_velocity = previous_frame_velocities[2]
         # f11 is deceleration of pelvis
-        # f15 is acceleration of hips 
-        # f16 is acceleration of hands
+        # f15 is acceleration of hands
+        # f17 is acceleration of hips 
         if self.frame == 0:
             self.f11 = 0
             self.f15 = 0
-            self.f16 = 0
+            self.f17 = 0
         else:
             self.f11 = -(self.pelvis_velocity - previous_pelvis_velocity)/((self.frame - last_frame)/30.0)
-            self.f15 = (self.f12 - previous_hips_velocity)/((self.frame - last_frame)/30.0)
-            self.f16 = (self.f13 - previous_hands_velocity)/((self.frame - last_frame)/30.0)
+            self.f15 = (self.f13 - previous_hands_velocity)/((self.frame - last_frame)/30.0)
+            self.f17 = (self.avg_hip_velocity - previous_hips_velocity)/((self.frame - last_frame)/30.0)
         
     def get_accelerations(self):
         """
@@ -391,7 +378,7 @@ class CAERFrameFeatures:
         Returns:
             acceleration_list: A list of the pelvis and hands acceleration
         """
-        acceleration_list = [self.f16, self.f15]
+        acceleration_list = [self.f15]
         return acceleration_list
 
     def calc_jerk(self, previous_frames_acceleration_list, last_frame):
@@ -403,12 +390,10 @@ class CAERFrameFeatures:
         Returns:
             None
         """
-        previous_pelvis_acceleration = previous_frames_acceleration_list[0]
-        #previous_hands_acceleration = previous_frames_acceleration_list[1]
+        previous_hands_acceleration = previous_frames_acceleration_list[0]
         # f18 is derivative of f15 accelerations with respect to time ("Jerk") -> rate of changes in acceleration
-            #-> solve f15 first
         if self.frame > 0:
-            self.f18 = (self.f15 - previous_pelvis_acceleration)/((self.frame - last_frame)/30.0)
+            self.f18 = (self.f15 - previous_hands_acceleration)/((self.frame - last_frame)/30.0)
         else:
             self.f18 = 0
         
@@ -419,12 +404,6 @@ class CAERFrameFeatures:
     
     def set_frame(self, value):
         self.frame = value
-
-    def get_f2(self):
-        return self.f2
-
-    def set_f2(self, value):
-        self.f2 = value
 
     def get_f3(self):
         return self.f3
@@ -443,12 +422,6 @@ class CAERFrameFeatures:
 
     def set_f5(self, value):
         self.f5 = value
-
-    def get_f8(self):
-        return self.f8
-
-    def set_f8(self, value):
-        self.f8 = value
 
     def get_f10(self):
         return self.f10
@@ -479,12 +452,6 @@ class CAERFrameFeatures:
 
     def set_f15(self, value):
         self.f15 = value
-
-    def get_f16(self):
-        return self.f16
-
-    def set_f16(self, value):
-        self.f16 = value
 
     def get_f18(self):
         return self.f18
@@ -527,3 +494,9 @@ class CAERFrameFeatures:
 
     def set_f25(self, value):
         self.f25 = value
+
+    def get_mp_points(self):
+        return self.points_array
+    
+    def get_z_movement(self):
+        return self.z_movement

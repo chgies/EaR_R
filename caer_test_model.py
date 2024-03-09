@@ -66,7 +66,7 @@ def draw_landmarks(frame_index, input_image, results):
 def prepare_loop():
     global emotion_model, detector, device
     # Create model instance
-    emotion_model = EmotionV0(57,104,7)
+    emotion_model = EmotionV0(59,104,7)
     load_model_weights(emotion_model)
 
     #Init Mediapipe Landmarker
