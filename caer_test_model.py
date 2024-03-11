@@ -59,11 +59,18 @@ def draw_landmarks(frame_index, input_image, results):
                 annotated_image,
                 pose_landmarks_proto,
                 mp.solutions.pose.POSE_CONNECTIONS,
-                mp.solutions.drawing_styles.get_default_pose_landmarks_style())
-        
+                mp.solutions.drawing_styles.get_default_pose_landmarks_style())        
     return annotated_image
 
+
 def prepare_loop():
+    """
+    Initialize the emotion model and the Mediapipe Task Landmarker needed to run the test lpp function.
+        Params:
+            None
+        Returns:
+            None 
+    """
     global emotion_model, detector, device
     # Create model instance
     emotion_model = EmotionV0(51,104,7)
@@ -82,7 +89,15 @@ def prepare_loop():
     )
     detector = vision.PoseLandmarker.create_from_options(options)
 
+
 def run_video_loop():
+    """
+    Run a loop of testing the trained emotion model with your own webcam unsing Mediapipe Pose Landmarker.
+        Params:
+            None
+        Returns:
+            None
+    """
     global detector, current_points
     FRAME_BUFFER_MAX_SIZE = 45
     frame_buffer_full = False
@@ -113,7 +128,7 @@ def run_video_loop():
                 frame_index = -5
                 calc_values = np.asarray(calculated_values.iloc[1:,].values, dtype=np.float32)
                 emotion_as_tensor = torch.tensor(calc_values, dtype=torch.float32).to(device)
-                emotion = emotion_model(emotion_as_tensor)
+                emotion = torch.argmax(emotion_model(emotion_as_tensor)).item()
                 print(emotion)
                 current_points = []
                 frame_buffer_full = True
@@ -128,6 +143,7 @@ def run_video_loop():
             break
     cap.release()
     cv2.destroyAllWindows()
+
 
 prepare_loop()
 run_video_loop()

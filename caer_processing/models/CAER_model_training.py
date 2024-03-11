@@ -21,8 +21,8 @@ def train_and_test_model():
     NUM_CLASSES = 7
     NUM_FEATURES = 51
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    train_file_path = "path_to/extracted_train_values.csv"  # Replace with the actual path to your CSV file
-    test_file_path = "path_to/extracted_test_values.csv"  # Replace with the actual path to your CSV file
+    train_file_path = "G:/Abschlussarbeit_Datasets/CAER/train/extracted_train_values.csv"  # Replace with the actual path to your CSV file
+    test_file_path = "G:/Abschlussarbeit_Datasets/CAER/test/extracted_test_values.csv"  # Replace with the actual path to your CSV file
     df_train = pd.read_csv(train_file_path, header=None)
     X_train_np_array = np.asarray(df_train.iloc[1:, 1:-1].values, dtype=np.float32)
     y_train_np_array = np.asarray(df_train.iloc[1:, -1:].values, dtype=np.float32)
@@ -35,16 +35,16 @@ def train_and_test_model():
     y_test = torch.tensor(y_test_np_array, dtype=torch.float32).to(device)
     train_dataset = TensorDataset(X_train, y_train)
     test_dataset = TensorDataset(X_test, y_test)
-    train_dl = DataLoader(train_dataset, batch_size = 12800, shuffle=True)
-    test_dl = DataLoader(test_dataset, batch_size = 12800, shuffle=True)
-    num_of_epochs = 20
+    train_dl = DataLoader(train_dataset, batch_size = 1800, shuffle=True)
+    test_dl = DataLoader(test_dataset, batch_size = 1000, shuffle=True)
+    num_of_epochs = 100
     # Put data to target device
     X_train, y_train = X_train.to(device), y_train.to(device)
     X_test, y_test = X_test.to(device), y_test.to(device)
     torch.manual_seed(42)
     ### Training
     training_model = EmotionV0(NUM_FEATURES,104,NUM_CLASSES).to(device)
-    train_model(training_model, train_dl, num_of_epochs)
+    train_model(training_model, train_dl, num_of_epochs, learning_rate=0.0001)
     save_model_weights(training_model)
     # Evaluate the model on the validation set
     val_model = EmotionV0(NUM_FEATURES,104,NUM_CLASSES).to(device)
