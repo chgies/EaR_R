@@ -38,7 +38,6 @@ class CAERPoseAnalyzer():
         match self.landmark_type:
             case 'lite':
                 if os.path.isfile(task_file_dir + 'pose_landmarker_lite.task'):
-                    print("Mediapipe Pose Landmark file 'lite' already downloaded")
                     return task_file_dir + 'pose_landmarker_lite.task'
                 else:
                     print("Mediapipe Pose Landmark file 'lite' not yet downloaded. Downloading now into './landmark_files' sub directory.")
@@ -56,7 +55,6 @@ class CAERPoseAnalyzer():
                         return -1
             case 'full':
                 if os.path.isfile(task_file_dir + 'pose_landmarker_full.task'):
-                    print("Mediapipe Pose Landmark file 'full' already downloaded")
                     return task_file_dir + 'pose_landmarker_full.task'
                 else:
                     print("Mediapipe Pose Landmark file 'full' not yet downloaded. Downloading now into './landmark_files' sub directory.")
@@ -74,7 +72,6 @@ class CAERPoseAnalyzer():
                         return -1
             case 'heavy':
                 if os.path.isfile(task_file_dir + 'pose_landmarker_heavy.task'):
-                    print("Mediapipe Pose Landmark file 'heavy' already downloaded")
                     return task_file_dir + 'pose_landmarker_heavy.task'
                 else:
                     print("Mediapipe Pose Landmark file 'heavy' not yet downloaded. Downloading now into './landmark_files' sub directory.")

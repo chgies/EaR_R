@@ -23,7 +23,7 @@ class CAERFeatureExtractor:
         """
         self.path_to_csv_file = input_data
         self.frame_feature_array = []
-        self.element_dataframes = pd.DataFrame(columns=['f2_min', 'f2_max', 'f2_mean', 'f2_std', 'f3_min', 'f3_max', 'f3_mean', 'f3_std', 'f4_min', 'f4_max', 'f4_mean', 'f4_std', 'f5_min', 'f5_max', 'f5_mean', 'f5_std', 'f8_min', 'f8_max', 'f8_mean', 'f8_std', 'f10_min', 'f10_max', 'f10_mean', 'f11_num_peaks', 'f12_min', 'f12_max', 'f12_std', 'f13_min', 'f13_max', 'f13_std', 'f15_min', 'f15_std', 'f16_min', 'f16_std', 'f18_min', 'f18_std', 'f19_min', 'f19_max', 'f19_mean', 'f19_std', 'f20_min', 'f20_max', 'f20_mean', 'f20_std', 'f22_min', 'f22_max', 'f22_mean', 'f22_std', 'f23_min', 'f23_max', 'f23_mean', 'f23_std', 'f24_min', 'f24_max', 'f24_mean', 'f24_std', 'f25_mean', 'z_mean', 'z_sum'])
+        self.element_dataframes = pd.DataFrame(columns=['f3_min', 'f3_max', 'f3_mean', 'f3_std', 'f4_min', 'f4_max', 'f4_mean', 'f4_std', 'f5_min', 'f5_max', 'f5_mean', 'f10_min', 'f10_max', 'f10_mean', 'f11_num_peaks', 'f12_min', 'f12_max', 'f12_std', 'f13_min', 'f13_max', 'f13_std', 'f15_min', 'f15_std', 'f17_min', 'f17_std', 'f18_min', 'f18_std', 'f19_min', 'f19_max', 'f19_mean', 'f19_std', 'f20_min', 'f20_max', 'f20_mean', 'f20_std', 'f22_min', 'f22_max', 'f22_mean', 'f22_std', 'f23_min', 'f23_max', 'f23_mean', 'f23_std', 'f24_min', 'f24_max', 'f24_mean', 'f24_std', 'f25_mean', 'z_mean', 'z_sum'])
         if arg_is_file:
             self.csv_data = self.load_csv_into_memory()
         else:
@@ -32,7 +32,7 @@ class CAERFeatureExtractor:
         if arg_is_file:
             self.calc_laban_elements_of_video()
         else:
-            self.calc_laban_elements_of_ivestream_frame_buffer()
+            self.calc_laban_elements_of_livestream_frame_buffer()
 
     def load_csv_into_memory(self):
         """
@@ -57,7 +57,7 @@ class CAERFeatureExtractor:
         """    
         return self.element_dataframes
 
-    def calc_laban_elements_of_ivestream_frame_buffer(self):
+    def calc_laban_elements_of_livestream_frame_buffer(self):
         """
         Build a frame window out of give data from a livestream.
         Use the calculated laban elements saved in "self.frame_feature_array" variable to create
@@ -126,6 +126,7 @@ class CAERFeatureExtractor:
         """
         if not self.csv_data.empty:       
             frame_size = int(self.csv_data['frame'].iloc[-1])
+            empty_frames = 0
             for frame_index in range(0,frame_size):
                 if self.csv_data.loc[self.csv_data['frame'] == frame_index].size > 0:
                     feature_object = CAERFrameFeatures(frame_index)
@@ -134,13 +135,18 @@ class CAERFeatureExtractor:
                     if frame_index == 1:
                         feature_object.calc_velocities([(0,0,0),(0,0,0),(0,0,0),(0,0,0),(0,0,0)], frame_index-1)
                         feature_object.calc_accelerations([0,0,0], frame_index-1)
-                    elif frame_index > 1:
-                        last_points_list = self.frame_feature_array[frame_index-1].get_pelvis_and_hands_positions()
-                        feature_object.calc_velocities(last_points_list, frame_index-1)
-                        feature_object.calculate_z_movement(self.frame_feature_array[frame_index-1].get_mp_points())
-                        previous_velocities_list = self.frame_feature_array[frame_index-1].get_velocities()
-                        feature_object.calc_accelerations(previous_velocities_list, frame_index-1)
-                        previous_accelerations_list = self.frame_feature_array[frame_index-1].get_accelerations()
-                        feature_object.calc_jerk(previous_accelerations_list, frame_index-1)
-                        previous_face_list = self.frame_feature_array[frame_index-1].get_face_points_list()
-                        feature_object.calc_head_body_angle(previous_face_list)
+                    elif frame_index > 1 and frame_index <= len(self.frame_feature_array)-empty_frames:
+                        for previous_empty_frames in range(1, len(self.frame_feature_array)-1):
+                            if self.frame_feature_array[frame_index-previous_empty_frames] is not 0:
+                                last_points_list = self.frame_feature_array[frame_index-previous_empty_frames].get_pelvis_and_hands_positions()
+                                feature_object.calc_velocities(last_points_list, frame_index-1)
+                                feature_object.calculate_z_movement(self.frame_feature_array[frame_index-1].get_mp_points())
+                                previous_velocities_list = self.frame_feature_array[frame_index-previous_empty_frames].get_velocities()
+                                feature_object.calc_accelerations(previous_velocities_list, frame_index-1)
+                                previous_accelerations_list = self.frame_feature_array[frame_index-1-previous_empty_frames].get_accelerations()
+                                feature_object.calc_jerk(previous_accelerations_list, frame_index-1)
+                                previous_face_list = self.frame_feature_array[frame_index-previous_empty_frames].get_face_points_list()
+                                feature_object.calc_head_orientation(previous_face_list)
+                                break
+                else:
+                    empty_frames += 1

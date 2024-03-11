@@ -8,17 +8,15 @@ class FrameWindow:
     """
     def __init__(self):
         self.is_full = False
-        self.f2_array = []
         self.f3_array = []
         self.f4_array = []
         self.f5_array = []
-        self.f8_array = []
         self.f10_array = []
         self.f11_array = []
         self.f12_array = []
         self.f13_array = []
         self.f15_array = []
-        self.f16_array = []
+        self.f17_array = []
         self.f18_array = []
         self.f19_array = []
         self.f20_array = []
@@ -67,17 +65,15 @@ class FrameWindow:
             None
         """        
         for frame in self.frame_buffer:
-            self.f2_array.append(frame.get_f2())
             self.f3_array.append(frame.get_f3())
             self.f4_array.append(frame.get_f4())
             self.f5_array.append(frame.get_f5())
-            self.f8_array.append(frame.get_f8())
             self.f10_array.append(frame.get_f10())
             self.f11_array.append(frame.get_f11())
             self.f12_array.append(frame.get_f12())
             self.f13_array.append(frame.get_f13())
             self.f15_array.append(frame.get_f15())
-            self.f16_array.append(frame.get_f16())
+            self.f17_array.append(frame.get_f17())
             self.f18_array.append(frame.get_f18())
             self.f19_array.append(frame.get_f19())
             self.f20_array.append(frame.get_f20())
@@ -89,18 +85,6 @@ class FrameWindow:
         
         element_values = []
         element_columns = []
-        f2_min = np.min(self.f2_array)
-        element_values.append(f2_min)
-        element_columns.append("f2_min")
-        f2_max = np.max(self.f2_array)
-        element_values.append(f2_max)
-        element_columns.append("f2_max")
-        f2_mean = np.mean(self.f2_array)
-        element_values.append(f2_mean)
-        element_columns.append("f2_mean")
-        f2_std = np.std(self.f2_array)
-        element_values.append(f2_std)
-        element_columns.append("f2_std")
         f3_min = np.min(self.f3_array)
         element_values.append(f3_min)
         element_columns.append("f3_min")
@@ -137,18 +121,6 @@ class FrameWindow:
         f5_std = np.std(self.f5_array)
         element_values.append(f5_std)
         element_columns.append("f5_std")
-        f8_min = np.min(self.f8_array)
-        element_values.append(f8_min)
-        element_columns.append("f8_min")
-        f8_max = np.max(self.f8_array)
-        element_values.append(f8_max)
-        element_columns.append("f8_max")
-        f8_mean = np.mean(self.f8_array)
-        element_values.append(f8_mean)
-        element_columns.append("f8_mean")
-        f8_std = np.std(self.f8_array)
-        element_values.append(f8_std)
-        element_columns.append("f8_std")
         f10_min = np.min(self.f10_array)
         element_values.append(f10_min)
         element_columns.append("f10_min")
@@ -202,12 +174,12 @@ class FrameWindow:
         f15_std = np.std(self.f15_array)
         element_values.append(f15_std)
         element_columns.append("f15_std")
-        f16_min = np.min(self.f16_array)
-        element_values.append(f16_min)
-        element_columns.append("f16_min")
-        f16_std = np.std(self.f16_array)
-        element_values.append(f16_std)
-        element_columns.append("f16_std")
+        f17_min = np.min(self.f17_array)
+        element_values.append(f17_min)
+        element_columns.append("f17_min")
+        f17_std = np.std(self.f17_array)
+        element_values.append(f17_std)
+        element_columns.append("f17_std")
         f18_min = np.min(self.f18_array)
         element_values.append(f18_min)
         element_columns.append("f18_min")

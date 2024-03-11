@@ -453,6 +453,9 @@ class CAERFrameFeatures:
     def set_f15(self, value):
         self.f15 = value
 
+    def get_f17(self):
+        return self.f17
+    
     def get_f18(self):
         return self.f18
 

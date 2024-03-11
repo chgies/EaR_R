@@ -3,7 +3,7 @@ import os
 CAER_DIR = None
 
 # Get CAER PATH variable and standardize it (make it usable regardless of windows or linux os)
-CAER_DIR = os.environ["CAER_DIR"]#.replace("\\","/") + "/").replace("//","/")
+CAER_DIR = os.environ["CAER_DIR"]
 print(f"CAER directory: {CAER_DIR}")
 
 def get_caer_directory():
@@ -32,7 +32,7 @@ def get_caer_movie_files(CAER_DIR):
     movie_list = []
     for r, d, f in os.walk(CAER_DIR):
         for file in f:
-            if '.avi' in file:
+            if str(file).endswith('.avi'):
                 movie_list.append(os.path.join(r, file))
     return movie_list
 

@@ -19,7 +19,7 @@ def train_and_test_model():
             None
     """
     NUM_CLASSES = 7
-    NUM_FEATURES = 59
+    NUM_FEATURES = 51
     device = "cuda" if torch.cuda.is_available() else "cpu"
     train_file_path = "path_to/extracted_train_values.csv"  # Replace with the actual path to your CSV file
     test_file_path = "path_to/extracted_test_values.csv"  # Replace with the actual path to your CSV file
