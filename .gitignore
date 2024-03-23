@@ -1,6 +1,8 @@
 video_speed_test.py
 test_vid.mp4
-.env
+*.env
 test.py
 __pycache__
-.pyc
+*.pyc
+*cpython*
+*.task
