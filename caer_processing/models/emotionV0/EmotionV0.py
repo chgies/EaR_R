@@ -18,5 +18,5 @@ class EmotionV0(nn.Module):
         x = self.fc1(x)
         x = self.relu(x)
         x = self.fc2(x)
-        x = nn.functional.softmax(x)
+        x = nn.functional.softmax(x, dim=1)
         return x

@@ -3,7 +3,10 @@ import numpy as np
 import torch
 from torch import nn
 from torch.utils.data import DataLoader,TensorDataset
-from EmotionV0 import EmotionV0
+from models.emotionV0.EmotionV0 import EmotionV0
+from models.emotionV1.EmotionV1 import EmotionV1
+
+MODEL_TO_TRAIN = "EmotionV1"
 
 if torch.cuda.is_available():
     device = "cuda"
@@ -23,7 +26,7 @@ def train_and_test_model():
     device = "cuda" if torch.cuda.is_available() else "cpu"
     train_file_path = "G:/Abschlussarbeit_Datasets/CAER/train/extracted_train_values.csv"  # Replace with the actual path to your CSV file
     test_file_path = "G:/Abschlussarbeit_Datasets/CAER/test/extracted_test_values.csv"  # Replace with the actual path to your CSV file
-    df_train = pd.read_csv(train_file_path, header=None)
+    df_train = pd.read_csv(train_file_path, header=None, )
     X_train_np_array = np.asarray(df_train.iloc[1:, 1:-1].values, dtype=np.float32)
     y_train_np_array = np.asarray(df_train.iloc[1:, -1:].values, dtype=np.float32)
     X_train = torch.tensor(X_train_np_array, dtype=torch.float32).to(device)
@@ -43,11 +46,19 @@ def train_and_test_model():
     X_test, y_test = X_test.to(device), y_test.to(device)
     torch.manual_seed(42)
     ### Training
-    training_model = EmotionV0(NUM_FEATURES,104,NUM_CLASSES).to(device)
+    match MODEL_TO_TRAIN:
+        case "EmotionV0":
+            training_model = EmotionV0(NUM_FEATURES,104,NUM_CLASSES).to(device)
+        case "EmotionV1":
+            training_model = EmotionV1(NUM_FEATURES,104,NUM_CLASSES).to(device)
     train_model(training_model, train_dl, num_of_epochs, learning_rate=0.0001)
     save_model_weights(training_model)
     # Evaluate the model on the validation set
-    val_model = EmotionV0(NUM_FEATURES,104,NUM_CLASSES).to(device)
+    match MODEL_TO_TRAIN:
+        case "EmotionV0":
+            val_model = EmotionV0(NUM_FEATURES,104,NUM_CLASSES).to(device)
+        case "EmotionV1":
+            val_model = EmotionV1(NUM_FEATURES,104,NUM_CLASSES).to(device)
     load_model_weights(val_model)
     evaluate_model(val_model, test_dl)
 
@@ -79,50 +90,67 @@ def train_model(model, data_loader, num_epochs=100, learning_rate=0.001):
     # Initialize the loss function, and optimizer
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
-
+    best_weights  = 0
+    best_accuracy = 0
     # Training loop
-    for epoch in range(num_epochs):
-        for inputs, labels in data_loader:
-            # Convert integer labels to one-hot encoded vectors
-            labels_one_hot = convert_to_one_hot(labels.to(torch.int64), 7)
-            # Forward pass
-            outputs = model.forward(inputs)
-            outputs = outputs.to(device)
-            loss = criterion(outputs, labels_one_hot)
+    if MODEL_TO_TRAIN == "EmotionV1":
 
-            # Backward pass and optimization
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
+        for epoch in range(num_epochs):
 
-        # Print loss for every epoch
-        if (epoch + 1) % 1 == 0:
-            print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}')
+            for inputs, labels in data_loader:
+                # Convert integer labels to one-hot encoded vectors
+                labels_one_hot = convert_to_one_hot(labels.to(torch.int64), 7)
+                #print(f"label.shape before oh: {labels.shape} and after: {labels_one_hot.shape}")
+                # Forward pass
+                outputs = model.forward(inputs)
+                outputs = outputs.to(device)
+                loss = criterion(outputs, labels_one_hot)
+                #print(f"Output: {outputs[0]}")
+                #print(f"Loh: {labels_one_hot[0]}")
+                # Backward pass and optimization
+                optimizer.zero_grad()
+                loss.backward()
+                optimizer.step()
+                accuracy = (torch.argmax(outputs, 1) == torch.argmax(labels, 1)).float().mean()
+                if accuracy > best_accuracy:
+                    best_accuracy = accuracy
+                    best_weights = model.state_dict()
+            # Print loss for every epoch
+            if (epoch + 1) % 1 == 0:
+                print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}')
     print('Training complete!')
 
 # Function to save the model weights
-def save_model_weights(model, filepath='./caer_processing/models/CAER_model_weights.pth'):
+def save_model_weights(model):
     """
     Save the trained weights into a file
         Params:
             model (torch.nn.Module): An instance of the model that has been trained
-            filepath (String): The path where the weights are saved
         Returns:
             None
     """
+    match MODEL_TO_TRAIN:
+        case "EmotionV0":
+            filepath='./caer_processing/models/emotionV0/CAER_model_weights.pth'
+        case "EmotionV1":
+            filepath='./caer_processing/models/emotionV1/CAER_model_weights.pth'
     torch.save(model.state_dict(), filepath)
     print(f'Model weights saved to {filepath}')
 
 # Function to load the model weights
-def load_model_weights(model, filepath='./caer_processing/models/CAER_model_weights.pth'):
+def load_model_weights(model):
     """
     Load saved weights into the model
         Params:
             model (torch.nn.Module): An instance of the model that needs these weights
-            filepath (String): The path where the weights are saved
     Returns:
         None
     """
+    match MODEL_TO_TRAIN:
+        case "EmotionV0":
+            filepath='./caer_processing/models/emotionV0/CAER_model_weights.pth'
+        case "EmotionV1":
+            filepath='./caer_processing/models/emotionV1/CAER_model_weights.pth'
     model.load_state_dict(torch.load(filepath, map_location=torch.device(device)))
     print(f'Model weights loaded from {filepath}')
 

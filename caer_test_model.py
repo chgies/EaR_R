@@ -6,8 +6,11 @@ import mediapipe as mp
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 from mediapipe.framework.formats import landmark_pb2
-from caer_processing.models.EmotionV0 import EmotionV0
+from caer_processing.models.emotionV0.EmotionV0 import EmotionV0
+from caer_processing.models.emotionV1.EmotionV1 import EmotionV1
 from caer_processing.caer_feature_extractor import CAERFeatureExtractor
+
+MODEL_TO_TEST = "EmotionV1"
 
 current_points = []
 detector = 0
@@ -18,13 +21,18 @@ if torch.cuda.is_available():
 else:
     device = "cpu"
 
-def load_model_weights(model, filepath='./caer_processing/models/CAER_model_weights.pth'):
+def load_model_weights(model):
     """
     Load the saved CAER model weights
         Params:
             model (EmotionV0): The EmotionV0 model object that the weights should be loaded to
             filepath (String): The path to the saved model weights
     """
+    match MODEL_TO_TEST:
+        case "EmotionV0":
+            filepath='./caer_processing/models/emotionV0/CAER_model_weights.pth'
+        case "EmotionV1":
+            filepath='./caer_processing/models/emotionV1/CAER_model_weights.pth'    
     model.load_state_dict(torch.load(filepath, map_location=torch.device(device)))
     print(f'Model weights loaded from {filepath}')
 
@@ -71,20 +79,24 @@ def prepare_loop():
         Returns:
             None 
     """
-    global emotion_model, detector, device
+    global MODEL_TO_TEST, emotion_model, detector, device
     # Create model instance
-    emotion_model = EmotionV0(51,104,7)
+    match MODEL_TO_TEST:
+        case "EmotionV0":
+            emotion_model = EmotionV0(51,104,7)
+        case "EmotionV1":
+            emotion_model = EmotionV1(51,104,7)
     load_model_weights(emotion_model)
 
     #Init Mediapipe Landmarker
-    base_options = python.BaseOptions(model_asset_path='./landmark_files/pose_landmarker_lite.task', delegate="GPU")
+    base_options = python.BaseOptions(model_asset_path='./landmark_files/pose_landmarker_heavy.task', delegate="GPU")
     options = vision.PoseLandmarkerOptions(
         base_options=base_options,
         running_mode=vision.RunningMode.VIDEO,
         num_poses=1,
-        min_pose_detection_confidence=0.5,
-        min_pose_presence_confidence=0.5,
-        min_tracking_confidence=0.5,
+        min_pose_detection_confidence=0.6,
+        min_pose_presence_confidence=0.6,
+        min_tracking_confidence=0.6,
         output_segmentation_masks=False,
     )
     detector = vision.PoseLandmarker.create_from_options(options)
@@ -104,6 +116,7 @@ def run_video_loop():
     frame_buffer = []
     frame_index = 0
     cap = cv2.VideoCapture(0)
+    emotion_as_word = ""
     while True:
         success, image = cap.read()
         if not success:
@@ -119,6 +132,7 @@ def run_video_loop():
         else:
             cv2.imshow("MediaPipe Pose Landmark", image)
             continue
+        
         if frame_index == FRAME_BUFFER_MAX_SIZE:
             if len(current_points) > 0:
                 frame_buffer = np.asarray(current_points)
@@ -127,13 +141,25 @@ def run_video_loop():
                 calculated_values = current_feature_extractor.get_element_list_as_dataframes()
                 frame_index = -5
                 calc_values = np.asarray(calculated_values.iloc[1:,].values, dtype=np.float32)
-                emotion_as_tensor = torch.tensor(calc_values, dtype=torch.float32).to(device)
-                emotion = torch.argmax(emotion_model(emotion_as_tensor)).item()
-                print(emotion)
+                calc_values_as_tensor = torch.tensor(calc_values, dtype=torch.float32).to(device)
+                emotion_as_tensor = emotion_model(calc_values_as_tensor)
+                print(torch.argmax(emotion_as_tensor))
+                emotion_as_value = torch.argmax(emotion_as_tensor).item()
+                match emotion_as_value:
+                    case 1: emotion_as_word = "Anger"
+                    case 2: emotion_as_word = "Disgust"
+                    case 3: emotion_as_word = "Fear"
+                    case 4: emotion_as_word = "Happy"
+                    case 5: emotion_as_word = "Sad"
+                    case 6: emotion_as_word = "Surprise"
+                    case 7: emotion_as_word = "Neutral"
+                    case _: emotion_as_word = str(emotion_as_value)
+                print(emotion_as_value)
                 current_points = []
                 frame_buffer_full = True
                 frame_index = 0
         if output_window is not None:
+            cv2.putText(output_window, emotion_as_word, (int(output_window.shape[0]/2), 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,255,0), 2, cv2.LINE_AA)
             cv2.imshow("MediaPipe Pose Landmark", cv2.cvtColor(output_window, cv2.COLOR_RGB2BGR))
         if not frame_buffer_full:
             frame_index += 1

@@ -32,3 +32,8 @@ ToDo:
 You can find information for feature extraction and further use in the 'references' folder
 
 This code is work in progress.
+
+Troubleshooting:
+1) If MediaPipe Landmark Model initialization throws "RuntimeError: Can't open zip archive", download the 
+   model from https://developers.google.com/mediapipe/solutions/vision/pose_landmarker and put it into the
+   local "landmark_files" directory

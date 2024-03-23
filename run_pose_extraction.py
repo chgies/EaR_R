@@ -37,7 +37,7 @@ def test_candor(landmark_type):
     print(f"{videos_to_analyze} videos still have to be analyzed. Working...")
     analyzed_videos = 0
     type = landmark_type
-    with concurrent.futures.ProcessPoolExecutor(max_workers=2) as executor:
+    with concurrent.futures.ProcessPoolExecutor(max_workers=3) as executor:
         for result in executor.map(CANDORPoseAnalyzer, videolist, repeat(type)):
             if result != -1:
                 analyzed_videos += 1
@@ -62,11 +62,11 @@ def test_caer(landmark_type):
     print(f"{videos_to_analyze} videos still have to be analyzed. Working...")
     analyzed_videos = 0
     type = landmark_type
-    #with concurrent.futures.ProcessPoolExecutor(max_workers=3) as executor:
-     #   for result in executor.map(CAERPoseAnalyzer, videolist, repeat(type)):
-      #      if result != -1:
-       #         analyzed_videos += 1
-        #        print(f"{analyzed_videos} of {videos_to_analyze} videos have been analyzed.")
+    with concurrent.futures.ProcessPoolExecutor(max_workers=3) as executor:
+        for result in executor.map(CAERPoseAnalyzer, videolist, repeat(type)):
+            if result != -1:
+                analyzed_videos += 1
+                print(f"{analyzed_videos} of {videos_to_analyze} videos have been analyzed.")
     print("All pose coordinates have been extracted from CAER dataset.")
     print("Extracting the Laban features and components from found pose data. Please Wait...")
     extract_all_csv_values()
@@ -80,7 +80,7 @@ if __name__ == "__main__":
     
     # here you can define the landmark pose extraction model of mediapipe
     # Possible values: 'lite', 'full', 'heavy'
-    landmark_type = 'lite'
+    landmark_type = 'heavy'
  
 #    test_candor(landmark_type)
     test_caer(landmark_type)
