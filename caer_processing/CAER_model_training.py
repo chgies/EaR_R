@@ -5,8 +5,10 @@ from torch import nn
 from torch.utils.data import DataLoader,TensorDataset
 from models.emotionV0.EmotionV0 import EmotionV0
 from models.emotionV1.EmotionV1 import EmotionV1
+from models.emotionV2.EmotionV2 import EmotionV2
+from models.emotionV3.EmotionV3 import EmotionV3
 
-MODEL_TO_TRAIN = "EmotionV1"
+MODEL_TO_TRAIN = "EmotionV2"
 
 if torch.cuda.is_available():
     device = "cuda"
@@ -21,18 +23,47 @@ def train_and_test_model():
         Returns:
             None
     """
-    NUM_CLASSES = 7
-    NUM_FEATURES = 51
+    match MODEL_TO_TRAIN:
+        case "EmotionV1":
+            NUM_CLASSES = 7
+            NUM_FEATURES = 51
+        case "EmotionV2":
+            NUM_CLASSES = 7
+            NUM_FEATURES = 37
+        case "EmotionV3":
+            NUM_CLASSES = 7
+            NUM_FEATURES = 22
     device = "cuda" if torch.cuda.is_available() else "cpu"
     train_file_path = "G:/Abschlussarbeit_Datasets/CAER/train/extracted_train_values.csv"  # Replace with the actual path to your CSV file
     test_file_path = "G:/Abschlussarbeit_Datasets/CAER/test/extracted_test_values.csv"  # Replace with the actual path to your CSV file
     df_train = pd.read_csv(train_file_path, header=None, )
     X_train_np_array = np.asarray(df_train.iloc[1:, 1:-1].values, dtype=np.float32)
+    """
+    X_mean = np.mean(X_train_np_array, axis=0)
+    X_std = np.std(X_train_np_array, axis=0)
+    X_train_np_array = 0.5 * (np.tanh(0.01 * ((X_train_np_array - X_mean) / X_std)) + 1)
+    """
+    match MODEL_TO_TRAIN:
+        case "EmotionV2":
+            X_train_np_array = np.delete(X_train_np_array, [14,15,16,18,19,21,22,23,25,26,27,46,47,46,50],axis=1)
+        case "EmotionV3":
+            X_train_np_array = np.delete(X_train_np_array, [3,7,11,12,13,14,15,16,17,18,19,21,22,23,24,25,26,27,30,31,34,38,39,42,43,46,47,49,50],axis=1)     
     y_train_np_array = np.asarray(df_train.iloc[1:, -1:].values, dtype=np.float32)
     X_train = torch.tensor(X_train_np_array, dtype=torch.float32).to(device)
     y_train = torch.tensor(y_train_np_array, dtype=torch.float32).to(device)
     df_test = pd.read_csv(test_file_path, header=None)
-    X_test_np_array = np.asarray(df_test.iloc[1:, 1:-1].values, dtype=np.float32)
+    X_test_np_array = np.asarray(df_test.iloc[1:, 1:-1].values, dtype=np.float32)    
+    
+    """tanh estimator normalization
+    X_mean = np.mean(X_test_np_array, axis=0)
+    X_std = np.std(X_test_np_array, axis=0)
+    X_test_np_array = 0.5 * (np.tanh(0.01 * ((X_test_np_array - X_mean) / X_std)) + 1)
+    """
+    match MODEL_TO_TRAIN:
+        case "EmotionV2":
+            X_test_np_array = np.delete(X_test_np_array, [14,15,16,18,19,21,22,23,25,26,27,46,47,46,50],axis=1)
+        case "EmotionV3":
+            X_test_np_array = np.delete(X_test_np_array, [3,7,11,12,13,14,15,16,17,18,19,21,22,23,24,25,26,27,30,31,34,38,39,42,43,46,47,49,50],axis=1)
     y_test_np_array = np.asarray(df_test.iloc[1:, -1:].values, dtype=np.float32)
     X_test = torch.tensor(X_test_np_array, dtype=torch.float32).to(device)
     y_test = torch.tensor(y_test_np_array, dtype=torch.float32).to(device)
@@ -51,7 +82,11 @@ def train_and_test_model():
             training_model = EmotionV0(NUM_FEATURES,104,NUM_CLASSES).to(device)
         case "EmotionV1":
             training_model = EmotionV1(NUM_FEATURES,104,NUM_CLASSES).to(device)
-    train_model(training_model, train_dl, num_of_epochs, learning_rate=0.0001)
+        case "EmotionV2":
+            training_model = EmotionV2(NUM_FEATURES,60,NUM_CLASSES).to(device)
+        case "EmotionV3":
+            training_model = EmotionV3(NUM_FEATURES,35,NUM_CLASSES).to(device)
+    train_model(training_model, train_dl, num_of_epochs, learning_rate=0.001)
     save_model_weights(training_model)
     # Evaluate the model on the validation set
     match MODEL_TO_TRAIN:
@@ -59,8 +94,13 @@ def train_and_test_model():
             val_model = EmotionV0(NUM_FEATURES,104,NUM_CLASSES).to(device)
         case "EmotionV1":
             val_model = EmotionV1(NUM_FEATURES,104,NUM_CLASSES).to(device)
+        case "EmotionV2":
+            val_model = EmotionV2(NUM_FEATURES,60,NUM_CLASSES).to(device)
+        case "EmotionV3":
+            val_model = EmotionV3(NUM_FEATURES,35,NUM_CLASSES).to(device)
     load_model_weights(val_model)
     evaluate_model(val_model, test_dl)
+
 
 # Function to convert integer labels to one-hot encoded vectors
 def convert_to_one_hot(labels, num_classes):
@@ -93,31 +133,29 @@ def train_model(model, data_loader, num_epochs=100, learning_rate=0.001):
     best_weights  = 0
     best_accuracy = 0
     # Training loop
-    if MODEL_TO_TRAIN == "EmotionV1":
+    for epoch in range(num_epochs):
 
-        for epoch in range(num_epochs):
-
-            for inputs, labels in data_loader:
-                # Convert integer labels to one-hot encoded vectors
-                labels_one_hot = convert_to_one_hot(labels.to(torch.int64), 7)
-                #print(f"label.shape before oh: {labels.shape} and after: {labels_one_hot.shape}")
-                # Forward pass
-                outputs = model.forward(inputs)
-                outputs = outputs.to(device)
-                loss = criterion(outputs, labels_one_hot)
-                #print(f"Output: {outputs[0]}")
-                #print(f"Loh: {labels_one_hot[0]}")
-                # Backward pass and optimization
-                optimizer.zero_grad()
-                loss.backward()
-                optimizer.step()
-                accuracy = (torch.argmax(outputs, 1) == torch.argmax(labels, 1)).float().mean()
-                if accuracy > best_accuracy:
-                    best_accuracy = accuracy
-                    best_weights = model.state_dict()
-            # Print loss for every epoch
-            if (epoch + 1) % 1 == 0:
-                print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}')
+        for inputs, labels in data_loader:
+            # Convert integer labels to one-hot encoded vectors
+            labels_one_hot = convert_to_one_hot(labels.to(torch.int64), 7)
+            #print(f"label.shape before oh: {labels.shape} and after: {labels_one_hot.shape}")
+            # Forward pass
+            outputs = model.forward(inputs)
+            outputs = outputs.to(device)
+            loss = criterion(outputs, labels_one_hot)
+            #print(f"Output: {outputs[0]}")
+            #print(f"Loh: {labels_one_hot[0]}")
+            # Backward pass and optimization
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+            accuracy = (torch.argmax(outputs, 1) == torch.argmax(labels, 1)).float().mean()
+            if accuracy > best_accuracy:
+                best_accuracy = accuracy
+                best_weights = model.state_dict()
+        # Print loss for every epoch
+        if (epoch + 1) % 1 == 0:
+            print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}')
     print('Training complete!')
 
 # Function to save the model weights
@@ -134,6 +172,10 @@ def save_model_weights(model):
             filepath='./caer_processing/models/emotionV0/CAER_model_weights.pth'
         case "EmotionV1":
             filepath='./caer_processing/models/emotionV1/CAER_model_weights.pth'
+        case "EmotionV2":
+            filepath='./caer_processing/models/emotionV2/CAER_model_weights.pth'
+        case "EmotionV3":
+            filepath='./caer_processing/models/emotionV3/CAER_model_weights.pth'
     torch.save(model.state_dict(), filepath)
     print(f'Model weights saved to {filepath}')
 
@@ -151,6 +193,11 @@ def load_model_weights(model):
             filepath='./caer_processing/models/emotionV0/CAER_model_weights.pth'
         case "EmotionV1":
             filepath='./caer_processing/models/emotionV1/CAER_model_weights.pth'
+        case "EmotionV2":
+            filepath='./caer_processing/models/emotionV2/CAER_model_weights.pth'
+        case "EmotionV3":
+            filepath='./caer_processing/models/emotionV3/CAER_model_weights.pth'
+        
     model.load_state_dict(torch.load(filepath, map_location=torch.device(device)))
     print(f'Model weights loaded from {filepath}')
 
