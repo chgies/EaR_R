@@ -8,9 +8,11 @@ from mediapipe.tasks.python import vision
 from mediapipe.framework.formats import landmark_pb2
 from caer_processing.models.emotionV0.EmotionV0 import EmotionV0
 from caer_processing.models.emotionV1.EmotionV1 import EmotionV1
+from caer_processing.models.emotionV2.EmotionV2 import EmotionV2
+from caer_processing.models.emotionV3.EmotionV3 import EmotionV3
 from caer_processing.caer_feature_extractor import CAERFeatureExtractor
 
-MODEL_TO_TEST = "EmotionV1"
+MODEL_TO_TEST = "EmotionV3"
 
 current_points = []
 detector = 0
@@ -32,7 +34,11 @@ def load_model_weights(model):
         case "EmotionV0":
             filepath='./caer_processing/models/emotionV0/CAER_model_weights.pth'
         case "EmotionV1":
-            filepath='./caer_processing/models/emotionV1/CAER_model_weights.pth'    
+            filepath='./caer_processing/models/emotionV1/CAER_model_weights.pth'
+        case "EmotionV2":
+            filepath='./caer_processing/models/emotionV2/CAER_model_weights.pth'
+        case "EmotionV3":
+            filepath='./caer_processing/models/emotionV3/CAER_model_weights.pth'    
     model.load_state_dict(torch.load(filepath, map_location=torch.device(device)))
     print(f'Model weights loaded from {filepath}')
 
@@ -86,6 +92,10 @@ def prepare_loop():
             emotion_model = EmotionV0(51,104,7)
         case "EmotionV1":
             emotion_model = EmotionV1(51,104,7)
+        case "EmotionV2":
+            emotion_model = EmotionV2(37,60,7)
+        case "EmotionV3":
+            emotion_model = EmotionV3(22,35,7)
     load_model_weights(emotion_model)
 
     #Init Mediapipe Landmarker
@@ -110,7 +120,7 @@ def run_video_loop():
         Returns:
             None
     """
-    global detector, current_points
+    global detector, current_points, emotion_model
     FRAME_BUFFER_MAX_SIZE = 45
     frame_buffer_full = False
     frame_buffer = []
@@ -132,7 +142,7 @@ def run_video_loop():
         else:
             cv2.imshow("MediaPipe Pose Landmark", image)
             continue
-        
+        print(frame_index)
         if frame_index == FRAME_BUFFER_MAX_SIZE:
             if len(current_points) > 0:
                 frame_buffer = np.asarray(current_points)
@@ -141,9 +151,14 @@ def run_video_loop():
                 calculated_values = current_feature_extractor.get_element_list_as_dataframes()
                 frame_index = -5
                 calc_values = np.asarray(calculated_values.iloc[1:,].values, dtype=np.float32)
+                match MODEL_TO_TEST:
+                    case "EmotionV2":
+                        calc_values = np.delete(calc_values, [14,15,16,18,19,21,22,23,25,26,27,46,47,46,50],axis=1)
+                    case "EmotionV3":
+                        calc_values = np.delete(calc_values, [3,7,11,12,13,14,15,16,17,18,19,21,22,23,24,25,26,27,30,31,34,38,39,42,43,46,47,49,50],axis=1)
                 calc_values_as_tensor = torch.tensor(calc_values, dtype=torch.float32).to(device)
                 emotion_as_tensor = emotion_model(calc_values_as_tensor)
-                print(torch.argmax(emotion_as_tensor))
+                print(f"max value in tensor: {torch.argmax(emotion_as_tensor)}")
                 emotion_as_value = torch.argmax(emotion_as_tensor).item()
                 match emotion_as_value:
                     case 1: emotion_as_word = "Anger"
@@ -154,7 +169,7 @@ def run_video_loop():
                     case 6: emotion_as_word = "Surprise"
                     case 7: emotion_as_word = "Neutral"
                     case _: emotion_as_word = str(emotion_as_value)
-                print(emotion_as_value)
+                print(f"Emotion: {emotion_as_value}")
                 current_points = []
                 frame_buffer_full = True
                 frame_index = 0
