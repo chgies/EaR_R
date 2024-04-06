@@ -10,9 +10,10 @@ from models.emotionV1.EmotionV1 import EmotionV1
 from models.emotionV2.EmotionV2 import EmotionV2
 from models.emotionV3.EmotionV3 import EmotionV3
 
+
+CAER_DIR = os.environ["CAER_DIR"]
 MODEL_TO_TRAIN = "EmotionV2"
 NUM_FEATURES = 0
-
 if torch.cuda.is_available():
     device = "cuda"
 else:
@@ -30,8 +31,8 @@ def train_and_test_model():
     global NUM_FEATURES
     operations = ['extracted', 'normalized', 'rescaled', 'standardized']
     for operation in operations:
-        train_file_path = f"G:/Abschlussarbeit_Datasets/CAER/train/{operation}_train_values.csv"  # Replace with the actual path to your CSV file
-        test_file_path = f"G:/Abschlussarbeit_Datasets/CAER/test/{operation}_test_values.csv"  # Replace with the actual path to your CSV file
+        train_file_path = f"{CAER_DIR}/train/{operation}_train_values.csv"  # Replace with the actual path to your CSV file
+        test_file_path = f"{CAER_DIR}/test/{operation}_test_values.csv"  # Replace with the actual path to your CSV file
         df_train = pd.read_csv(train_file_path, header=None, )
         X_train_np_array = np.asarray(df_train.iloc[1:, 1:-1].values, dtype=np.float32)    
         match MODEL_TO_TRAIN:
@@ -137,6 +138,7 @@ def train_model(operation, model, data_loader, num_epochs=100, learning_rate=0.0
     """
     Train the model with the given arguments as parameters
         Params:
+            operation (String): Which version of the dataset is trained. Can be 'extracted' (the original one), 'normalized', 'standardized', 'rescaled'
             model (torch.nn.Module): The model that should be trained
             input_size (int): How much features the model has
             hidden_size (int): The size of the hidden layers
@@ -156,13 +158,10 @@ def train_model(operation, model, data_loader, num_epochs=100, learning_rate=0.0
         for inputs, labels in data_loader:
             # Convert integer labels to one-hot encoded vectors
             labels_one_hot = convert_to_one_hot(labels.to(torch.int64), 7)
-            #print(f"label.shape before oh: {labels.shape} and after: {labels_one_hot.shape}")
             # Forward pass
             outputs = model.forward(inputs)
             outputs = outputs.to(device)
             loss = criterion(outputs, labels_one_hot)
-            #print(f"Output: {outputs[0]}")
-            #print(f"Loh: {labels_one_hot[0]}")
             # Backward pass and optimization
             optimizer.zero_grad()
             loss.backward()
@@ -172,8 +171,8 @@ def train_model(operation, model, data_loader, num_epochs=100, learning_rate=0.0
                 best_accuracy = accuracy
                 best_weights = model.state_dict()
         # Print loss for every epoch
-        #if (epoch + 1) % 1 == 0:
-        #    print(f'Training {operation} {MODEL_TO_TRAIN}, epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}')
+        if (epoch + 1) % 1 == 0:
+            print(f'Training {operation} {MODEL_TO_TRAIN}, epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}')
     print('Training complete!')
 
 
