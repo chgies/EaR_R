@@ -1,7 +1,5 @@
 import torch
 import concurrent.futures
-from candor_processing.candor_pose_analyzer import CANDORPoseAnalyzer
-from candor_processing.datamanager_candor import get_biggest_files
 from caer_processing.caer_pose_analyzer import CAERPoseAnalyzer
 from caer_processing.datamanager_caer import get_caer_movie_files
 from caer_processing.datamanager_caer import get_caer_directory
