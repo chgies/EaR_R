@@ -7,12 +7,13 @@ from torch import nn
 from torch.utils.data import DataLoader,TensorDataset
 from models.emotionV0.EmotionV0 import EmotionV0
 from models.emotionV1.EmotionV1 import EmotionV1
-from models.emotionV2.EmotionV2 import EmotionV2
-from models.emotionV3.EmotionV3 import EmotionV3
+from models.emotionV50.EmotionV50 import EmotionV50
+from models.emotionV80.EmotionV80 import EmotionV80
 
-
+AUTO_SORT_BY_IMPORTANCE = True
+CREATE_NORMALIZED_CSV = False
 CAER_DIR = os.environ["CAER_DIR"]
-MODEL_TO_TRAIN = "EmotionV2"
+MODEL_TO_TRAIN = "EmotionV50"
 NUM_FEATURES = 0
 if torch.cuda.is_available():
     device = "cuda"
@@ -29,60 +30,69 @@ def train_and_test_model():
             None
     """
     global NUM_FEATURES
-    operations = ['extracted', 'normalized', 'rescaled', 'standardized']
+    if CREATE_NORMALIZED_CSV:
+        operations = ['extracted', 'normalized', 'rescaled', 'standardized']
+        normalize_extracted_values(f"{CAER_DIR}/train/extracted_train_values.csv", f"{CAER_DIR}/test/extracted_test_values.csv")
+    else:
+        operations = ['extracted']
     for operation in operations:
         train_file_path = f"{CAER_DIR}/train/{operation}_train_values.csv"  # Replace with the actual path to your CSV file
         test_file_path = f"{CAER_DIR}/test/{operation}_test_values.csv"  # Replace with the actual path to your CSV file
         df_train = pd.read_csv(train_file_path, header=None, )
         X_train_np_array = np.asarray(df_train.iloc[1:, 1:-1].values, dtype=np.float32)    
+        df_test = pd.read_csv(test_file_path, header=None)
+        X_test_np_array = np.asarray(df_test.iloc[1:, 1:-1].values, dtype=np.float32)    
+        if AUTO_SORT_BY_IMPORTANCE:
+            features_to_delete_for_50, features_to_delete_for_80 = calculate_least_important_features(df_test, operation)
+        else:
+            features_to_delete_for_50, features_to_delete_for_80 = []
         match MODEL_TO_TRAIN:
-            case "EmotionV2":
+            case "EmotionV80":
                 match operation:
                     case 'extracted':
-                        X_train_np_array = np.delete(X_train_np_array, [14, 15, 16, 18, 19, 20, 21, 22, 23, 26, 27, 48, 49, 50],axis=1)
+                        X_train_np_array = np.delete(X_train_np_array, features_to_delete_for_80,axis=1)
                     case 'normalized':
-                        X_train_np_array = np.delete(X_train_np_array, [14, 15, 16, 18, 19, 20, 21, 22, 23, 26, 27, 48, 49, 50],axis=1)
+                        X_train_np_array = np.delete(X_train_np_array, features_to_delete_for_80,axis=1)
                     case 'rescaled':
-                        X_train_np_array = np.delete(X_train_np_array, [14, 15, 16, 18, 19, 20, 21, 22, 23, 26, 27, 48, 49, 50],axis=1)
+                        X_train_np_array = np.delete(X_train_np_array, features_to_delete_for_80,axis=1)
                     case 'standardized':
-                        X_train_np_array = np.delete(X_train_np_array, [14, 15, 16, 18, 19, 20, 21, 22, 23, 26, 27, 48, 49, 50],axis=1)
-            case "EmotionV3":
+                        X_train_np_array = np.delete(X_train_np_array, features_to_delete_for_80,axis=1)
+            case "EmotionV50":
                 match operation:
                     case 'extracted':
-                        X_train_np_array = np.delete(X_train_np_array, [3, 6, 7, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 31, 34, 35, 38, 39, 42, 43, 48, 49, 50],axis=1)
+                        X_train_np_array = np.delete(X_train_np_array, features_to_delete_for_50,axis=1)
                     case 'normalized':
-                        X_train_np_array = np.delete(X_train_np_array, [3, 7, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 31, 34, 35, 38, 39, 42, 43, 48, 49, 50],axis=1)
+                        X_train_np_array = np.delete(X_train_np_array, features_to_delete_for_50,axis=1)
                     case 'rescaled':
-                        X_train_np_array = np.delete(X_train_np_array, [3, 6, 7, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 31, 34, 35, 38, 39, 42, 43, 48, 49, 50],axis=1)
+                        X_train_np_array = np.delete(X_train_np_array, features_to_delete_for_50,axis=1)
                     case 'standardized':
-                        X_train_np_array = np.delete(X_train_np_array, [3, 7, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 31, 32, 34, 35, 38, 39, 42, 43, 48, 49, 50],axis=1)                         
+                        X_train_np_array = np.delete(X_train_np_array, features_to_delete_for_50,axis=1)                         
         NUM_FEATURES = X_train_np_array.shape[1]
         y_train_np_array = np.asarray(df_train.iloc[1:, -1:].values, dtype=np.float32)
         X_train = torch.tensor(X_train_np_array, dtype=torch.float32).to(device)
         y_train = torch.tensor(y_train_np_array, dtype=torch.float32).to(device)
-        df_test = pd.read_csv(test_file_path, header=None)
-        X_test_np_array = np.asarray(df_test.iloc[1:, 1:-1].values, dtype=np.float32)    
+        
         match MODEL_TO_TRAIN:
-            case "EmotionV2":
+            case "EmotionV80":
                 match operation:
                     case 'extracted':
-                        X_test_np_array = np.delete(X_test_np_array, [14, 15, 16, 18, 19, 20, 21, 22, 23, 26, 27, 48, 49, 50],axis=1)
+                        X_test_np_array = np.delete(X_test_np_array, features_to_delete_for_80,axis=1)
                     case 'normalized':
-                        X_test_np_array = np.delete(X_test_np_array, [14, 15, 16, 18, 19, 20, 21, 22, 23, 26, 27, 48, 49, 50],axis=1)
+                        X_test_np_array = np.delete(X_test_np_array, features_to_delete_for_80,axis=1)
                     case 'rescaled':
-                        X_test_np_array = np.delete(X_test_np_array, [14, 15, 16, 18, 19, 20, 21, 22, 23, 26, 27, 48, 49, 50],axis=1)
+                        X_test_np_array = np.delete(X_test_np_array, features_to_delete_for_80,axis=1)
                     case 'standardized':
-                        X_test_np_array = np.delete(X_test_np_array, [14, 15, 16, 18, 19, 20, 21, 22, 23, 26, 27, 48, 49, 50],axis=1)
-            case "EmotionV3":
+                        X_test_np_array = np.delete(X_test_np_array, features_to_delete_for_80,axis=1)
+            case "EmotionV50":
                 match operation:
                     case 'extracted':
-                        X_test_np_array = np.delete(X_test_np_array, [3, 6, 7, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 31, 34, 35, 38, 39, 42, 43, 48, 49, 50],axis=1)
+                        X_test_np_array = np.delete(X_test_np_array, features_to_delete_for_50,axis=1)
                     case 'normalized':
-                        X_test_np_array = np.delete(X_test_np_array, [3, 7, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 31, 34, 35, 38, 39, 42, 43, 48, 49, 50],axis=1)
+                        X_test_np_array = np.delete(X_test_np_array, features_to_delete_for_50,axis=1)
                     case 'rescaled':
-                        X_test_np_array = np.delete(X_test_np_array, [3, 6, 7, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 31, 34, 35, 38, 39, 42, 43, 48, 49, 50],axis=1)
+                        X_test_np_array = np.delete(X_test_np_array, features_to_delete_for_50,axis=1)
                     case 'standardized':
-                        X_test_np_array = np.delete(X_test_np_array, [3, 7, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 31, 32, 34, 35, 38, 39, 42, 43, 48, 49, 50],axis=1)                         
+                        X_test_np_array = np.delete(X_test_np_array, features_to_delete_for_50,axis=1)                         
         y_test_np_array = np.asarray(df_test.iloc[1:, -1:].values, dtype=np.float32)
         X_test = torch.tensor(X_test_np_array, dtype=torch.float32).to(device)
         y_test = torch.tensor(y_test_np_array, dtype=torch.float32).to(device)
@@ -90,7 +100,7 @@ def train_and_test_model():
         test_dataset = TensorDataset(X_test, y_test)
         train_dl = DataLoader(train_dataset, batch_size = 1800, shuffle=True)
         test_dl = DataLoader(test_dataset, batch_size = 1000, shuffle=True)
-        num_of_epochs = 100
+        num_of_epochs = 10
         # Put data to target device
         X_train, y_train = X_train.to(device), y_train.to(device)
         X_test, y_test = X_test.to(device), y_test.to(device)
@@ -99,25 +109,30 @@ def train_and_test_model():
         match MODEL_TO_TRAIN:
             case "EmotionV0":
                 training_model = EmotionV0(NUM_FEATURES,104,7).to(device)
+                deleted_feature_list = []
             case "EmotionV1":
                 training_model = EmotionV1(NUM_FEATURES,104,7).to(device)
-            case "EmotionV2":
-                training_model = EmotionV2(NUM_FEATURES,60,7).to(device)
-            case "EmotionV3":
-                training_model = EmotionV3(NUM_FEATURES,35,7).to(device)
+                deleted_feature_list = []
+            case "EmotionV80":
+                training_model = EmotionV80(NUM_FEATURES,60,7).to(device)
+                deleted_feature_list = features_to_delete_for_80
+            case "EmotionV50":
+                training_model = EmotionV50(NUM_FEATURES,35,7).to(device)
+                deleted_feature_list = features_to_delete_for_50
         train_model(operation, training_model, train_dl, num_of_epochs, learning_rate=0.001)
-        save_model_weights(training_model)
+        save_model_weights(training_model, deleted_feature_list)
         # Evaluate the model on the validation set
         match MODEL_TO_TRAIN:
             case "EmotionV0":
                 val_model = EmotionV0(NUM_FEATURES,104,7).to(device)
             case "EmotionV1":
                 val_model = EmotionV1(NUM_FEATURES,104,7).to(device)
-            case "EmotionV2":
-                val_model = EmotionV2(NUM_FEATURES,60,7).to(device)
-            case "EmotionV3":
-                val_model = EmotionV3(NUM_FEATURES,35,7).to(device)
-        load_model_weights(val_model)
+            case "EmotionV80":
+                val_model = EmotionV80(NUM_FEATURES,60,7).to(device)
+            case "EmotionV50":
+                val_model = EmotionV50(NUM_FEATURES,35,7).to(device)
+        weight_path, features_to_delete = load_model_configuration(MODEL_TO_TRAIN)
+        val_model.load_state_dict(torch.load(weight_path, map_location=torch.device(device)))
         evaluate_model(operation, val_model, test_dl)
 
 
@@ -154,7 +169,6 @@ def train_model(operation, model, data_loader, num_epochs=100, learning_rate=0.0
     best_accuracy = 0
     # Training loop
     for epoch in range(num_epochs):
-
         for inputs, labels in data_loader:
             # Convert integer labels to one-hot encoded vectors
             labels_one_hot = convert_to_one_hot(labels.to(torch.int64), 7)
@@ -176,11 +190,12 @@ def train_model(operation, model, data_loader, num_epochs=100, learning_rate=0.0
     print('Training complete!')
 
 
-def save_model_weights(model):
+def save_model_weights(model, features_to_delete):
     """
     Save the trained weights into a file
         Params:
             model (torch.nn.Module): An instance of the model that has been trained
+            NUM_FEATURES: The list of features that should be removed from analyzing when using the model
         Returns:
             None
     """
@@ -189,34 +204,47 @@ def save_model_weights(model):
             filepath='./caer_processing/models/emotionV0/CAER_model_weights.pth'
         case "EmotionV1":
             filepath='./caer_processing/models/emotionV1/CAER_model_weights.pth'
-        case "EmotionV2":
-            filepath='./caer_processing/models/emotionV2/CAER_model_weights.pth'
-        case "EmotionV3":
-            filepath='./caer_processing/models/emotionV3/CAER_model_weights.pth'
+        case "EmotionV80":
+            filepath='./caer_processing/models/emotionV80/CAER_model_weights.pth'
+            list_file = open(f"{os.path.split(filepath)[0]}/feature.list", 'w')
+            list_file.write(str(features_to_delete))
+            list_file.close()
+        case "EmotionV50":
+            filepath='./caer_processing/models/emotionV50/CAER_model_weights.pth'
+            list_file = open(f"{os.path.split(filepath)[0]}/feature.list", 'w')
+            list_file.write(str(features_to_delete))
+            list_file.close()
     torch.save(model.state_dict(), filepath)
     print(f'Model weights saved to {filepath}')
 
 
-def load_model_weights(model):
+def load_model_configuration(model_type):
     """
-    Load saved weights into the model
+    Load saved weights and features that need to be deleted and returns them
         Params:
             model (torch.nn.Module): An instance of the model that needs these weights
     Returns:
-        None
+        filepath: The filepath of saved weights
+        feature_list (list): A list of features that need to be deleted from analyzing
     """
-    match MODEL_TO_TRAIN:
+    match model_type:
         case "EmotionV0":
             filepath='./caer_processing/models/emotionV0/CAER_model_weights.pth'
+            feature_list = []
         case "EmotionV1":
             filepath='./caer_processing/models/emotionV1/CAER_model_weights.pth'
-        case "EmotionV2":
-            filepath='./caer_processing/models/emotionV2/CAER_model_weights.pth'
-        case "EmotionV3":
-            filepath='./caer_processing/models/emotionV3/CAER_model_weights.pth'
-        
-    model.load_state_dict(torch.load(filepath, map_location=torch.device(device)))
-    print(f'Model weights loaded from {filepath}')
+            feature_list = []
+        case "EmotionV80":
+            filepath='./caer_processing/models/emotionV80/CAER_model_weights.pth'
+            read_file = open("./caer_processing/models/emotionV80/feature.list")
+            line = read_file.read().replace("[", "").replace("]","")
+            feature_list = [int(element) for element in line.split()]
+        case "EmotionV50":
+            filepath='./caer_processing/models/emotionV50/CAER_model_weights.pth'
+            read_file = open("./caer_processing/models/emotionV50/feature.list")
+            line = read_file.read().replace("[", "").replace("]","")
+            feature_list = [int(element) for element in line.split()]    
+    return filepath, feature_list
 
 
 def evaluate_model(operation, model, val_loader):
@@ -304,7 +332,7 @@ def normalize_extracted_values(train_path, test_path):
         changed_train_values.to_csv(os.path.split(train_path)[0] + f"{operation}_train_values.csv")
         changed_test_values.to_csv(os.path.split(test_path)[0] + f"{operation}_test_values.csv")
 
-def calculate_least_important_features(feature_dataset):
+def calculate_least_important_features(feature_dataset, operation):
     """
     Use Random Forest classification on dataset to order the features by
     their importance for classification. The ordered list gets saved to 2 lists
@@ -315,23 +343,22 @@ def calculate_least_important_features(feature_dataset):
 
         Params:
             feature_dataset (Pandas.Dataframe): The extracted values from CAER video dataset
-
+            operation (String): The normalization operation that was used on current dataset
         Returns:
             features_to_delete_for_50 (List of int): A list of integers representing the features that make up less than 50% importance
             features_to_delete_for_80 (List of int): A list of integers representing the features that make up less than 20% importance
     """
+
+    print(f"Calculating the importance of features in {operation} dataset. Please wait...")
     X_np_array = np.asarray(feature_dataset.iloc[1:, 1:-1].values, dtype=np.float32)
     y_np_array = np.asarray(feature_dataset.iloc[1:, -1:].values, dtype=np.int8).ravel()
     columns = feature_dataset.columns[1:-1]
     rf = RandomForestClassifier()
-    # Train the model
     rf.fit(X_np_array, y_np_array)
-    # Get feature importances
     importances = rf.feature_importances_
-    # Sort feature importances in descending order
     indices = np.argsort(importances)[::-1]
     sum = 0
-    print(f"Feature ranking:")
+    print(f"Feature ranking of  {operation} dataset:")
     over_50 = False
     over_80 = False
     features_to_delete_for_50 = np.arange(51)
@@ -342,15 +369,15 @@ def calculate_least_important_features(feature_dataset):
         sum += importances[indices[f]]
         shown_features.append(indices[f])
         if sum >= 0.5 and not over_50:
-            #print("50% importance")
+            print("50% importance")
             over_50 = True
             features_to_delete_for_50 = np.delete(features_to_delete_for_50, shown_features)
         if sum >= 0.8 and not over_80:
-            #print("80% importance")
+            print("80% importance")
             over_80 = True
             features_to_delete_for_80= np.delete(features_to_delete_for_80, shown_features)
-    print(f"features to delete for 50% importance: {features_to_delete_for_50}")
-    print(f"features to delete for 80% importance: {features_to_delete_for_80}")
+    print(f"features to delete for 50% importance in {operation} dataset : {features_to_delete_for_50}")
+    print(f"features to delete for 80% importance in {operation} dataset : {features_to_delete_for_80}")
     return features_to_delete_for_50, features_to_delete_for_80
 
 train_and_test_model()

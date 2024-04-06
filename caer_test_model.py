@@ -8,40 +8,47 @@ from mediapipe.tasks.python import vision
 from mediapipe.framework.formats import landmark_pb2
 from caer_processing.models.emotionV0.EmotionV0 import EmotionV0
 from caer_processing.models.emotionV1.EmotionV1 import EmotionV1
-from caer_processing.models.emotionV2.EmotionV2 import EmotionV2
-from caer_processing.models.emotionV3.EmotionV3 import EmotionV3
+from caer_processing.models.emotionV50.EmotionV50 import EmotionV50
+from caer_processing.models.emotionV80.EmotionV80 import EmotionV80
 from caer_processing.caer_feature_extractor import CAERFeatureExtractor
 
-MODEL_TO_TEST = "EmotionV3"
+MODEL_TO_TEST = "EmotionV50"
 
+# Global variables
 current_points = []
 detector = 0
 emotion_model = 0
+features_to_delete = []
 
 if torch.cuda.is_available():
     device = "cuda"
 else:
     device = "cpu"
 
-def load_model_weights(model):
+def load_model_configuration(model_type):
     """
-    Load the saved CAER model weights
+    Load the saved CAER model weight filepath and the list of features that need to be ignored
         Params:
             model (EmotionV0): The EmotionV0 model object that the weights should be loaded to
             filepath (String): The path to the saved model weights
     """
-    match MODEL_TO_TEST:
+    match model_type:
         case "EmotionV0":
             filepath='./caer_processing/models/emotionV0/CAER_model_weights.pth'
+            feature_list = []    
         case "EmotionV1":
             filepath='./caer_processing/models/emotionV1/CAER_model_weights.pth'
-        case "EmotionV2":
-            filepath='./caer_processing/models/emotionV2/CAER_model_weights.pth'
-        case "EmotionV3":
-            filepath='./caer_processing/models/emotionV3/CAER_model_weights.pth'    
-    model.load_state_dict(torch.load(filepath, map_location=torch.device(device)))
-    print(f'Model weights loaded from {filepath}')
-
+        case "EmotionV50":
+            filepath='./caer_processing/models/emotionV50/CAER_model_weights.pth'
+            read_file = open("./caer_processing/models/emotionV50/feature.list")
+            line = read_file.read().replace("[", "").replace("]","")
+            feature_list = [int(element) for element in line.split()]    
+        case "EmotionV80":
+            filepath='./caer_processing/models/emotionV80/CAER_model_weights.pth'
+            read_file = open("./caer_processing/models/emotionV80/feature.list")
+            line = read_file.read().replace("[", "").replace("]","")
+            feature_list = [int(element) for element in line.split()]        
+    return filepath, feature_list
 
 def draw_landmarks(frame_index, input_image, results):
     """
@@ -85,19 +92,20 @@ def prepare_loop():
         Returns:
             None 
     """
-    global MODEL_TO_TEST, emotion_model, detector, device
+    global MODEL_TO_TEST, emotion_model, detector, device, features_to_delete
     # Create model instance
+    weight_filepath, features_to_delete = load_model_configuration(MODEL_TO_TEST)
+    num_of_features = 51 - len(features_to_delete)
     match MODEL_TO_TEST:
         case "EmotionV0":
             emotion_model = EmotionV0(51,104,7)
         case "EmotionV1":
             emotion_model = EmotionV1(51,104,7)
-        case "EmotionV2":
-            emotion_model = EmotionV2(37,60,7)
-        case "EmotionV3":
-            emotion_model = EmotionV3(22,35,7)
-    load_model_weights(emotion_model)
-
+        case "EmotionV50":
+            emotion_model = EmotionV50(num_of_features,35,7)
+        case "EmotionV80":
+            emotion_model = EmotionV80(num_of_features,60,7)
+    emotion_model.load_state_dict(torch.load(weight_filepath, map_location=torch.device(device)))
     #Init Mediapipe Landmarker
     base_options = python.BaseOptions(model_asset_path='./landmark_files/pose_landmarker_heavy.task', delegate="GPU")
     options = vision.PoseLandmarkerOptions(
@@ -120,7 +128,7 @@ def run_video_loop():
         Returns:
             None
     """
-    global detector, current_points, emotion_model
+    global detector, current_points, emotion_model, features_to_delete
     FRAME_BUFFER_MAX_SIZE = 45
     frame_buffer_full = False
     frame_buffer = []
@@ -151,11 +159,7 @@ def run_video_loop():
                 calculated_values = current_feature_extractor.get_element_list_as_dataframes()
                 frame_index = -5
                 calc_values = np.asarray(calculated_values.iloc[1:,].values, dtype=np.float32)
-                match MODEL_TO_TEST:
-                    case "EmotionV2":
-                        calc_values = np.delete(calc_values, [14,15,16,18,19,21,22,23,25,26,27,46,47,46,50],axis=1)
-                    case "EmotionV3":
-                        calc_values = np.delete(calc_values, [3,7,11,12,13,14,15,16,17,18,19,21,22,23,24,25,26,27,30,31,34,38,39,42,43,46,47,49,50],axis=1)
+                calc_values = np.delete(calc_values, features_to_delete,axis=1)
                 calc_values_as_tensor = torch.tensor(calc_values, dtype=torch.float32).to(device)
                 emotion_as_tensor = emotion_model(calc_values_as_tensor)
                 print(f"max value in tensor: {torch.argmax(emotion_as_tensor)}")
