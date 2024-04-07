@@ -10,10 +10,10 @@ from models.emotionV1.EmotionV1 import EmotionV1
 from models.emotionV50.EmotionV50 import EmotionV50
 from models.emotionV80.EmotionV80 import EmotionV80
 
-AUTO_SORT_BY_IMPORTANCE = True
+AUTO_SORT_BY_IMPORTANCE = False
 CREATE_NORMALIZED_CSV = False
 CAER_DIR = os.environ["CAER_DIR"]
-MODEL_TO_TRAIN = "EmotionV50"
+MODEL_TO_TRAIN = "EmotionV1"
 NUM_FEATURES = 0
 if torch.cuda.is_available():
     device = "cuda"
@@ -41,12 +41,15 @@ def train_and_test_model():
         df_train = pd.read_csv(train_file_path, header=None, )
         X_train_np_array = np.asarray(df_train.iloc[1:, 1:-1].values, dtype=np.float32)    
         df_test = pd.read_csv(test_file_path, header=None)
-        X_test_np_array = np.asarray(df_test.iloc[1:, 1:-1].values, dtype=np.float32)    
+        X_test_np_array = np.asarray(df_test.iloc[1:, 1:-1].values, dtype=np.float32)
+        manual_deleted_features = [0,1,3,4,5,7,8,9,11,12,13,16,17,19,20,22,24,26,28,29,31,32,33,35,36,37,39,40,41,43,44,45,47,50]    
         if AUTO_SORT_BY_IMPORTANCE:
             features_to_delete_for_50, features_to_delete_for_80 = calculate_least_important_features(df_test, operation)
         else:
-            features_to_delete_for_50, features_to_delete_for_80 = []
+            features_to_delete_for_50, features_to_delete_for_80 = ([],[])
         match MODEL_TO_TRAIN:
+            case "EmotionV1":
+                X_train_np_array = np.delete(X_train_np_array, manual_deleted_features,axis=1)
             case "EmotionV80":
                 match operation:
                     case 'extracted':
@@ -73,6 +76,8 @@ def train_and_test_model():
         y_train = torch.tensor(y_train_np_array, dtype=torch.float32).to(device)
         
         match MODEL_TO_TRAIN:
+            case "EmotionV1":
+                X_test_np_array = np.delete(X_test_np_array, manual_deleted_features,axis=1)
             case "EmotionV80":
                 match operation:
                     case 'extracted':
@@ -112,7 +117,7 @@ def train_and_test_model():
                 deleted_feature_list = []
             case "EmotionV1":
                 training_model = EmotionV1(NUM_FEATURES,104,7).to(device)
-                deleted_feature_list = []
+                deleted_feature_list = manual_deleted_features
             case "EmotionV80":
                 training_model = EmotionV80(NUM_FEATURES,60,7).to(device)
                 deleted_feature_list = features_to_delete_for_80
@@ -204,6 +209,9 @@ def save_model_weights(model, features_to_delete):
             filepath='./caer_processing/models/emotionV0/CAER_model_weights.pth'
         case "EmotionV1":
             filepath='./caer_processing/models/emotionV1/CAER_model_weights.pth'
+            list_file = open(f"{os.path.split(filepath)[0]}/feature.list", 'w')
+            list_file.write(str(features_to_delete))
+            list_file.close()
         case "EmotionV80":
             filepath='./caer_processing/models/emotionV80/CAER_model_weights.pth'
             list_file = open(f"{os.path.split(filepath)[0]}/feature.list", 'w')
@@ -233,7 +241,9 @@ def load_model_configuration(model_type):
             feature_list = []
         case "EmotionV1":
             filepath='./caer_processing/models/emotionV1/CAER_model_weights.pth'
-            feature_list = []
+            read_file = open("./caer_processing/models/emotionV1/feature.list")
+            line = read_file.read().replace("[", "").replace("]","").replace(",","")
+            feature_list = [int(element) for element in line.split()]
         case "EmotionV80":
             filepath='./caer_processing/models/emotionV80/CAER_model_weights.pth'
             read_file = open("./caer_processing/models/emotionV80/feature.list")

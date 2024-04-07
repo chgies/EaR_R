@@ -12,7 +12,7 @@ from caer_processing.models.emotionV50.EmotionV50 import EmotionV50
 from caer_processing.models.emotionV80.EmotionV80 import EmotionV80
 from caer_processing.caer_feature_extractor import CAERFeatureExtractor
 
-MODEL_TO_TEST = "EmotionV50"
+MODEL_TO_TEST = "EmotionV1"
 
 # Global variables
 current_points = []
@@ -38,6 +38,9 @@ def load_model_configuration(model_type):
             feature_list = []    
         case "EmotionV1":
             filepath='./caer_processing/models/emotionV1/CAER_model_weights.pth'
+            read_file = open("./caer_processing/models/emotionV1/feature.list")
+            line = read_file.read().replace("[", "").replace("]","").replace(",","")
+            feature_list = [int(element) for element in line.split()]
         case "EmotionV50":
             filepath='./caer_processing/models/emotionV50/CAER_model_weights.pth'
             read_file = open("./caer_processing/models/emotionV50/feature.list")
@@ -100,7 +103,7 @@ def prepare_loop():
         case "EmotionV0":
             emotion_model = EmotionV0(51,104,7)
         case "EmotionV1":
-            emotion_model = EmotionV1(51,104,7)
+            emotion_model = EmotionV1(num_of_features,104,7)
         case "EmotionV50":
             emotion_model = EmotionV50(num_of_features,35,7)
         case "EmotionV80":
