@@ -7,6 +7,9 @@ from caer_processing.run_caer_feature_extraction import extract_all_csv_values
 from itertools import repeat
 import os
 
+# here you can define the landmark pose extraction model of mediapipe
+# Possible values: 'lite', 'full', 'heavy'
+MEDIAPIPE_MODEL_TO_CHOOSE = 'heavy'
 CAER_DIR = os.environ["CAER_DIR"]
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
@@ -46,8 +49,6 @@ if __name__ == "__main__":
     print(f"CUDA is available for PyTorch: {torch.cuda.is_available()}")
     print(f"Found CUDA devices: {torch.cuda.device_count()}")
     
-    # here you can define the landmark pose extraction model of mediapipe
-    # Possible values: 'lite', 'full', 'heavy'
-    landmark_type = 'heavy'
+    landmark_type = MEDIAPIPE_MODEL_TO_CHOOSE
  
     test_caer(landmark_type)
