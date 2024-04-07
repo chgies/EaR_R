@@ -38,18 +38,19 @@ def train_and_test_model():
     for operation in operations:
         train_file_path = f"{CAER_DIR}/train/{operation}_train_values.csv"  # Replace with the actual path to your CSV file
         test_file_path = f"{CAER_DIR}/test/{operation}_test_values.csv"  # Replace with the actual path to your CSV file
-        df_train = pd.read_csv(train_file_path, header=None, )
+        df_train = pd.read_csv(train_file_path, header=None)
         X_train_np_array = np.asarray(df_train.iloc[1:, 1:-1].values, dtype=np.float32)    
         df_test = pd.read_csv(test_file_path, header=None)
         X_test_np_array = np.asarray(df_test.iloc[1:, 1:-1].values, dtype=np.float32)
-        manual_deleted_features = [0,1,3,4,5,7,8,9,11,12,13,16,17,19,20,22,24,26,28,29,31,32,33,35,36,37,39,40,41,43,44,45,47,50]    
+        features_to_delete_for_v1 = [0,1,3,4,5,7,8,9,11,12,13,16,17,19,20,22,24,26,28,29,31,32,33,35,36,37,39,40,41,43,44,45,47,50]   
         if AUTO_SORT_BY_IMPORTANCE:
             features_to_delete_for_50, features_to_delete_for_80 = calculate_least_important_features(df_test, operation)
         else:
             features_to_delete_for_50, features_to_delete_for_80 = ([],[])
+        # delete unused features in training dataset
         match MODEL_TO_TRAIN:
             case "EmotionV1":
-                X_train_np_array = np.delete(X_train_np_array, manual_deleted_features,axis=1)
+                X_train_np_array = np.delete(X_train_np_array, features_to_delete_for_v1,axis=1)
             case "EmotionV80":
                 match operation:
                     case 'extracted':
@@ -75,9 +76,10 @@ def train_and_test_model():
         X_train = torch.tensor(X_train_np_array, dtype=torch.float32).to(device)
         y_train = torch.tensor(y_train_np_array, dtype=torch.float32).to(device)
         
+        # remove unused features in testing dataset
         match MODEL_TO_TRAIN:
             case "EmotionV1":
-                X_test_np_array = np.delete(X_test_np_array, manual_deleted_features,axis=1)
+                X_test_np_array = np.delete(X_test_np_array, features_to_delete_for_v1,axis=1)
             case "EmotionV80":
                 match operation:
                     case 'extracted':
@@ -103,13 +105,13 @@ def train_and_test_model():
         y_test = torch.tensor(y_test_np_array, dtype=torch.float32).to(device)
         train_dataset = TensorDataset(X_train, y_train)
         test_dataset = TensorDataset(X_test, y_test)
-        train_dl = DataLoader(train_dataset, batch_size = 1800, shuffle=True)
-        test_dl = DataLoader(test_dataset, batch_size = 1000, shuffle=True)
-        num_of_epochs = 10
+        train_dl = DataLoader(train_dataset, batch_size =5500, shuffle=True)
+        test_dl = DataLoader(test_dataset, batch_size = 5500, shuffle=True)
+        num_of_epochs = 20
         # Put data to target device
         X_train, y_train = X_train.to(device), y_train.to(device)
         X_test, y_test = X_test.to(device), y_test.to(device)
-        torch.manual_seed(42)
+        #torch.manual_seed(42)
         ### Training
         match MODEL_TO_TRAIN:
             case "EmotionV0":
@@ -117,14 +119,14 @@ def train_and_test_model():
                 deleted_feature_list = []
             case "EmotionV1":
                 training_model = EmotionV1(NUM_FEATURES,104,7).to(device)
-                deleted_feature_list = manual_deleted_features
+                deleted_feature_list = features_to_delete_for_v1
             case "EmotionV80":
                 training_model = EmotionV80(NUM_FEATURES,60,7).to(device)
                 deleted_feature_list = features_to_delete_for_80
             case "EmotionV50":
                 training_model = EmotionV50(NUM_FEATURES,35,7).to(device)
                 deleted_feature_list = features_to_delete_for_50
-        train_model(operation, training_model, train_dl, num_of_epochs, learning_rate=0.001)
+        train_model(operation, training_model, train_dl, num_of_epochs, learning_rate=0.0001)
         save_model_weights(training_model, deleted_feature_list)
         # Evaluate the model on the validation set
         match MODEL_TO_TRAIN:
@@ -175,6 +177,16 @@ def train_model(operation, model, data_loader, num_epochs=100, learning_rate=0.0
     # Training loop
     for epoch in range(num_epochs):
         for inputs, labels in data_loader:
+            """
+
+            Only for testing
+            
+            min = torch.min(labels)
+            max = torch.max(labels)
+            mean = torch.mean(labels)
+            median = torch.median(labels.float()).item()
+            print(f"label values: {min} to {max}, mean is {mean}, median is {median}")
+            """
             # Convert integer labels to one-hot encoded vectors
             labels_one_hot = convert_to_one_hot(labels.to(torch.int64), 7)
             # Forward pass
