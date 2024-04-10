@@ -5,6 +5,8 @@ from caer_processing.datamanager_caer import get_caer_csv_files
 from caer_processing.datamanager_caer import get_caer_directory
 from caer_processing.caer_feature_extractor import CAERFeatureExtractor
 
+# If this is True, the program will Calculate the Laban Movement Features instead of the normal f-Table described by Aristidou et al. (2015)
+ALTERNATIVE_LABAN_FEATURES = True
 
 def extract_values_in_dir(csv_directory):
     """
@@ -77,10 +79,69 @@ def extract_all_csv_values():
     print(f"Extracting Laban elements from {len(csv_file_list)} csv files in {len(csv_dir_list)} directories. Please wait...")
     dirs_to_extract = [csv_dir_list[0].rsplit("/",1)[0],csv_dir_list[10].rsplit("/",1)[0],csv_dir_list[20].rsplit("/",1)[0]]
     analyzed_directories = 0
-    with concurrent.futures.ProcessPoolExecutor(max_workers=3) as executor:
-        for result in executor.map(extract_values_in_dir, dirs_to_extract):
-            if result != -1:
-                analyzed_directories += 7
-                print(f"{analyzed_directories} of {len(csv_dir_list)} directories have been analyzed.")
+    if ALTERNATIVE_LABAN_FEATURES == False:
+        with concurrent.futures.ProcessPoolExecutor(max_workers=3) as executor:
+            for result in executor.map(extract_values_in_dir, dirs_to_extract):
+                if result != -1:
+                    analyzed_directories += 7
+                    print(f"{analyzed_directories} of {len(csv_dir_list)} directories have been analyzed.")
+    else:
+        with concurrent.futures.ProcessPoolExecutor(max_workers=3) as executor:
+            for result in executor.map(extract_laban_elements_in_dir, dirs_to_extract):
+                if result != -1:
+                    analyzed_directories += 7
+                    print(f"{analyzed_directories} of {len(csv_dir_list)} directories have been analyzed.")
 
     print("All directories have been analyzed. Data hase been saved as csv files in CAER directory.")
+
+def extract_laban_elements_in_dir(csv_directory):
+    """
+    Scan all csv files in a given directory of the CAER dataset, extract the calculated values and format the into high-level Laban Movement Values and combine them all into one big csv file to
+    make this data available for model training. After that, add a column with "emotion" label.
+
+        Params: 
+            csv_dorectory (String): The path to the directory in CAER dataset
+        Returns:
+            None
+    """
+    combined_dataframe = pd.DataFrame(columns=['jump', 'rhythmicity', 'spread', 'free_and_light', 'up_and_rise', 'rotation', 'passive_weight', 'arms_to_upper_body', 'sink', 'head_drop', 'retreat', 'condense_and_enclose', 'bind', 'twist_and_back', 'strong', 'sudden', 'advance', 'direct', 'hands_to_head', 'hands_above_head', 'body_shift_backing', 'head_shake', 'hands_to_body', 'orientation_change_to_lr', 'hands_to_head_backing', 'hands_up_backing', 'emotion'])
+    extracted_file_index = 0
+    csv_file_list = get_caer_csv_files(csv_directory)
+    csv_dir_list = []
+    for csv_file in csv_file_list:
+        csv_file = csv_file.replace("\\","/").replace("//","/")
+        splitted_path = csv_file.split("/")
+        if "/".join(splitted_path[:len(splitted_path)-1]) not in csv_dir_list:
+            csv_dir_list.append("/".join(splitted_path[:len(splitted_path)-1]))
+    
+    csv_data = pd.DataFrame(columns=['jump', 'rhythmicity', 'spread', 'free_and_light', 'up_and_rise', 'rotation', 'passive_weight', 'arms_to_upper_body', 'sink', 'head_drop', 'retreat', 'condense_and_enclose', 'bind', 'twist_and_back', 'strong', 'sudden', 'advance', 'direct', 'hands_to_head', 'hands_above_head', 'body_shift_backing', 'head_shake', 'hands_to_body', 'orientation_change_to_lr', 'hands_to_head_backing', 'hands_up_backing', 'emotion'])
+    for csv_dir in csv_dir_list:
+        for file in os.listdir(csv_dir):
+            if '.csv' in file:
+                feature_extractor = CAERFeatureExtractor(os.path.join(csv_dir, file))
+                match  csv_dir.rsplit("/",1)[1]:
+                    case "Anger": 
+                        label = 1
+                    case "Disgust": 
+                        label = 2
+                    case "Fear": 
+                        label = 3
+                    case "Happy": 
+                        label = 4
+                    case "Sad": 
+                        label = 5
+                    case "Surprise": 
+                        label = 6
+                    case "Neutral": 
+                        label = 7
+                enhanced_dataframe = feature_extractor.get_laban_element_list_as_dataframes()
+                enhanced_dataframe['emotion'] = label
+                dataframes_to_combine = csv_data, enhanced_dataframe
+                csv_data = pd.concat(dataframes_to_combine, ignore_index=True)
+                extracted_file_index += 1
+                print(f"{extracted_file_index} of {len(csv_file_list)} csv files extracted.")
+    dataframes_to_combine = combined_dataframe, csv_data
+    combined_csv = pd.concat(dataframes_to_combine)
+    dir_name = csv_directory.rsplit("/",1)[1]
+    combined_csv.to_csv(csv_dir_list[0].rsplit("/",1)[0] + f"/extracted_{dir_name}_values.csv")
+    print("Element extraction completed.")

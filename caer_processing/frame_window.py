@@ -28,34 +28,6 @@ class FrameWindow:
         self.frame_buffer = []
         self.elements_dataframe = ""
 
-        # laban elements
-        self.jump = 0.0
-        self.rhythmicity = 0.0
-        self.spread = 0.0
-        self.free_and_light = 0.0
-        self.up_and_rise = 0.0
-        self.rotation = 0.0
-        self.passive_weight = 0.0
-        self.arms_to_upper_body = 0.0
-        self.sink = 0.0
-        self.head_drop = 0.0
-        self.retreat = 0.0
-        self.condense_and_enclose = 0.0
-        self.bind = 0.0
-        self.twist_and_back = 0.0
-        self.strong = 0.0
-        self.sudden = 0.0
-        self.advance = 0.0
-        self.direct = 0.0
-        self.hands_to_head = 0.0
-        self.hands_above_head = 0.0
-        self.body_shift_backing = 0.0
-        self.head_shake = 0.0
-        self.hands_to_body = 0.0
-        self.orientation_change_lr = 0.0
-        self.hands_to_head_backing = 0.0
-        self.hands_up_backing = 0.0
-    
     def calculate_elements_of_frame_buffer(self):
         """
         Use the values of every frame in this captured frame window to calculate the needed statistical values as mentioned in Aristidou et al. 2015 (see references folder).

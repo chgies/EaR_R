@@ -4,6 +4,7 @@ from caer_processing.caer_pose_analyzer import CAERPoseAnalyzer
 from caer_processing.datamanager_caer import get_caer_movie_files
 from caer_processing.datamanager_caer import get_caer_directory
 from caer_processing.run_caer_feature_extraction import extract_all_csv_values
+from caer_processing.run_caer_feature_extraction import extract_all_csv_values
 from itertools import repeat
 import os
 
@@ -21,7 +22,7 @@ def test_caer(landmark_type):
     in every frame. You can change the max amount of concurrent processes by changing the 'Max_workers' value in the
     ProcessPoopExecutor - calling line
     """
-
+    
     # get a list of all videos that still have to be analyzed
     print("Gathering information about the video files in CAER dataset. Please wait...")
     videolist = get_caer_movie_files(get_caer_directory())
@@ -40,7 +41,9 @@ def test_caer(landmark_type):
                 print(f"{analyzed_videos} of {videos_to_analyze} videos have been analyzed.")
     print("All pose coordinates have been extracted from CAER dataset.")
     print("Extracting the Laban features and components from found pose data. Please Wait...")
+    
     extract_all_csv_values()
+    
 
 if __name__ == "__main__":
 

@@ -41,6 +41,7 @@ class CAERFrameFeatures:
         self.rhip_position = (0.0, 0.0, 0.0)
         self.points_array = []
         self.z_movement = 0.0
+        self.horizontal_head_level = 0.0
 
     def calculate_z_movement(self, last_points_array):
         for point in self.points_array:
@@ -112,11 +113,11 @@ class CAERFrameFeatures:
         self.f24 = distance.euclidean(self.points_array[0], self.pelvis_position)
    
         # f25 is relation of hand's position to body
-        horizontal_head_level = self.face_and_centroid_points_list[0][1]
+        self.horizontal_head_level = self.face_and_centroid_points_list[0][1]
         for point in self.face_and_centroid_points_list:
-            if point[1] > horizontal_head_level:
-                horizontal_head_level = point[1]
-        if self.lhand_position[1] > horizontal_head_level or self.rhand_position[1] > horizontal_head_level: 
+            if point[1] > self.horizontal_head_level:
+                self.horizontal_head_level = point[1]
+        if self.lhand_position[1] > self.horizontal_head_level or self.rhand_position[1] > self.horizontal_head_level: 
             self.f25 = 2
         elif self.lhand_position[1] > self.centroid_position[1] or self.rhand_position[1] > self.centroid_position[1]:
             self.f25 = 1
@@ -279,17 +280,12 @@ class CAERFrameFeatures:
         if self.frame > 0:
             for index in range(0,len(previous_face_list)-1):
                 summed_x_change += (self.face_and_centroid_points_list[index][0] - previous_face_list[index][0])
-                
                 summed_y_change += (self.face_and_centroid_points_list[index][1] - previous_face_list[index][1])
-
                 summed_z_change += (self.face_and_centroid_points_list[index][2] - previous_face_list[index][2])
-
         face_movement = (summed_x_change, summed_y_change, summed_z_change)
-
         centroid_x_movement = self.centroid_position[0] - previous_centroid[0]
         centroid_y_movement = self.centroid_position[1] - previous_centroid[1]
         centroid_z_movement = self.centroid_position[2] - previous_centroid[2]
-
         centroid_movement = [centroid_x_movement,centroid_y_movement, centroid_z_movement]
         if self.frame > 0:
             if centroid_movement[0] == 0.0:
@@ -299,7 +295,8 @@ class CAERFrameFeatures:
             if centroid_movement[2] == 0.0:
                 centroid_movement[2] = 1
             self.f10 = (face_movement[0]/centroid_movement[0], face_movement[1]/centroid_movement[1], face_movement[2]/centroid_movement[2])
-        
+
+
     def calc_velocities(self, previous_frame_points_list, last_frame):
         """
         Calculate the velicities of the hips and hands
@@ -392,6 +389,7 @@ class CAERFrameFeatures:
         """
         previous_hands_acceleration = previous_frames_acceleration_list[0]
         # f18 is derivative of f15 accelerations with respect to time ("Jerk") -> rate of changes in acceleration
+        # if current acceleration is bigger than last one, then positive value.
         if self.frame > 0:
             self.f18 = (self.f15 - previous_hands_acceleration)/((self.frame - last_frame)/30.0)
         else:
@@ -503,3 +501,6 @@ class CAERFrameFeatures:
     
     def get_z_movement(self):
         return self.z_movement
+    
+    def get_head_level(self):
+        return self.horizontal_head_level

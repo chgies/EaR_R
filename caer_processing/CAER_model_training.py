@@ -13,7 +13,7 @@ from models.emotionV80.EmotionV80 import EmotionV80
 AUTO_SORT_BY_IMPORTANCE = False
 CREATE_NORMALIZED_CSV = False
 CAER_DIR = os.environ["CAER_DIR"]
-MODEL_TO_TRAIN = "EmotionV1"
+MODEL_TO_TRAIN = "EmotionV0"
 NUM_FEATURES = 0
 if torch.cuda.is_available():
     device = "cuda"
@@ -107,7 +107,7 @@ def train_and_test_model():
         test_dataset = TensorDataset(X_test, y_test)
         train_dl = DataLoader(train_dataset, batch_size =5500, shuffle=True)
         test_dl = DataLoader(test_dataset, batch_size = 5500, shuffle=True)
-        num_of_epochs = 20
+        num_of_epochs = 100
         # Put data to target device
         X_train, y_train = X_train.to(device), y_train.to(device)
         X_test, y_test = X_test.to(device), y_test.to(device)
