@@ -1,6 +1,8 @@
 """
 This class contains all the important motion features of a video frame
 Instances of this class are handled by feature_extraction class
+f-Values are taken from Aristidou (2015) - see feature_tables.pdf in /references directory
+You can find a description of the pose points found by mediapipe at https://developers.google.com/mediapipe/solutions/vision/pose_landmarker
 """
 from scipy.spatial import distance
 from shapely.geometry import Polygon
