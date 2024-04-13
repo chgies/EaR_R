@@ -20,6 +20,7 @@ Steps to start the extraction:
 5. Run "caer_processing/models/CAER_model_training.py" to train your model
     a. You can choose which model you'd like to use by changing line 14 in CAER_model_training.py. If you type "EmotionV1", you train the model with features manually chosen by me. If you change it to "EmotionV50" or "EmotionV80" AND set line 21 "AUTO_SORT_IMPORTANCE" to True, the program will use Random Forest Classification to find the features with 50% resp. 80% importance and use them to train the net.
     b. You can chose to rescale the dataset by changin line 25 "CREATE_NORMALIZED_CSV" to True. The program will then use 3 normalization methods on the dataset, save the new datasets into files in the CAER trian and test directories and train the normal and the normalized datasets sequentially. This can improve model accuracy.
+
 6. Run "caer_test_model" to test the model with your webcam
     a. like in step 5, you can change line 15 "MODEL_TO_TEST" to choose the model you like to test. "EmotionV1", "EmotionV50" and "EmotionV80" are possible
 
@@ -29,10 +30,7 @@ Steps to start the extraction:
     c. To test these new models, set line 19 "USE_LABAN_FEATURES" to True in "caer_test_model.py" and run it
 
 
-
-
 You can find information for feature extraction and further use in the 'references' folder
-
 
 This code is work in progress.
 
