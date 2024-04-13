@@ -4,13 +4,15 @@ from caer_processing.caer_pose_analyzer import CAERPoseAnalyzer
 from caer_processing.datamanager_caer import get_caer_movie_files
 from caer_processing.datamanager_caer import get_caer_directory
 from caer_processing.run_caer_feature_extraction import extract_all_csv_values
-from caer_processing.run_caer_feature_extraction import extract_all_csv_values
 from itertools import repeat
 import os
 
 # here you can define the landmark pose extraction model of mediapipe
 # Possible values: 'lite', 'full', 'heavy'
 MEDIAPIPE_MODEL_TO_CHOOSE = 'heavy'
+ # choose False to extract posa data and calculate features describes in Aristidou 2015, True to save them as Laban elements
+USE_LABAN_FEATURES = False
+
 CAER_DIR = os.environ["CAER_DIR"]
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
@@ -42,9 +44,8 @@ def test_caer(landmark_type):
     print("All pose coordinates have been extracted from CAER dataset.")
     print("Extracting the Laban features and components from found pose data. Please Wait...")
     
-    extract_all_csv_values()
+    extract_all_csv_values(USE_LABAN_FEATURES)
     
-
 if __name__ == "__main__":
 
     # Assuring if GPU is used
