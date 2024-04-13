@@ -11,7 +11,7 @@ from models.emotionV50.EmotionV50 import EmotionV50
 from models.emotionV80.EmotionV80 import EmotionV80
 
 # Choose, which model type to train. Possible: "EmotionV0", "EmotionV1", "EmotionV50", "EmotionV80" 
-MODEL_TO_TRAIN = "EmotionV80"
+MODEL_TO_TRAIN = "EmotionV0"
 
 # Choose if you want to train the net with features following Aristidou (2015, aee references folder), or high level Laban motor elements
 USE_LABAN_FEATURES = False
@@ -41,21 +41,24 @@ def train_and_test_model():
             None
     """
     global NUM_FEATURES
+    if USE_LABAN_FEATURES == False:
+        use_laban_features = False
+        add_to_path_text = ""
+    else:
+        use_laban_features = True
+        add_to_path_text = "_laban"
     if CREATE_NORMALIZED_CSV:
         operations = ['extracted', 'normalized', 'rescaled', 'standardized']
         normalize_extracted_values(f"{CAER_DIR}/train/extracted_train_values.csv", f"{CAER_DIR}/test/extracted_test_values.csv")
     else:
         operations = ['extracted']
     for operation in operations:
-        train_file_path = f"{CAER_DIR}/train/{operation}_train_values.csv"  # Replace with the actual path to your CSV file
-        test_file_path = f"{CAER_DIR}/test/{operation}_test_values.csv"  # Replace with the actual path to your CSV file
+
+        train_file_path = f"{CAER_DIR}/train/{operation}{add_to_path_text}_train_values.csv"  
+        test_file_path = f"{CAER_DIR}/test/{operation}{add_to_path_text}_test_values.csv"  
         df_train = pd.read_csv(train_file_path)
         X_train_np_array = np.asarray(df_train.iloc[1:, 1:-1].values, dtype=np.float32)    
         y_train_np_array = np.asarray(df_train.iloc[1:, -1:].values, dtype=np.float32)
-        if USE_LABAN_FEATURES == False:
-            use_laban_features = False
-        else:
-            use_laban_features = True
         df_test = pd.read_csv(test_file_path)
         X_test_np_array = np.asarray(df_test.iloc[1:, 1:-1].values, dtype=np.float32)
         if use_laban_features == False:
@@ -441,8 +444,8 @@ def calculate_least_important_features(feature_dataset, operation):
             print("80% importance")
             over_80 = True
             features_to_delete_for_80= np.delete(features_to_delete_for_80, shown_features)
-    print(f"features to delete for 50% importance in {operation} dataset : {features_to_delete_for_50}")
-    print(f"features to delete for 80% importance in {operation} dataset : {features_to_delete_for_80}")
+    #print(f"features to delete for 50% importance in {operation} dataset : {features_to_delete_for_50}")
+    #print(f"features to delete for 80% importance in {operation} dataset : {features_to_delete_for_80}")
     return features_to_delete_for_50, features_to_delete_for_80
 
 

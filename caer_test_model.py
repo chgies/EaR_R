@@ -12,7 +12,11 @@ from caer_processing.models.emotionV50.EmotionV50 import EmotionV50
 from caer_processing.models.emotionV80.EmotionV80 import EmotionV80
 from caer_processing.caer_feature_extractor import CAERFeatureExtractor
 
-MODEL_TO_TEST = "EmotionV1"
+# Choose the model you like to test. Possible models are "EmotionV0", "EmotionV1", "EmotionV50" and "EmotionV80"
+MODEL_TO_TEST = "EmotionV0"
+
+# Choose if you want to train the net with features following Aristidou (2015, aee references folder), or high level Laban motor elements
+USE_LABAN_FEATURES = False
 
 # Global variables
 current_points = []
@@ -34,20 +38,32 @@ def load_model_configuration(model_type):
     """
     match model_type:
         case "EmotionV0":
-            filepath='./caer_processing/models/emotionV0/CAER_model_weights.pth'
+            if USE_LABAN_FEATURES == False:
+                filepath='./caer_processing/models/emotionV0/CAER_model_weights.pth'
+            else:
+                filepath='./caer_processing/models/emotionV0/CAER_laban_model_weights.pth'
             feature_list = []    
         case "EmotionV1":
-            filepath='./caer_processing/models/emotionV1/CAER_model_weights.pth'
+            if USE_LABAN_FEATURES == False:
+                filepath='./caer_processing/models/emotionV1/CAER_model_weights.pth'
+            else:
+                filepath='./caer_processing/models/emotionV1/CAER_laban_model_weights.pth'
             read_file = open("./caer_processing/models/emotionV1/feature.list")
             line = read_file.read().replace("[", "").replace("]","").replace(",","")
             feature_list = [int(element) for element in line.split()]
         case "EmotionV50":
-            filepath='./caer_processing/models/emotionV50/CAER_model_weights.pth'
+            if USE_LABAN_FEATURES == False:
+                filepath='./caer_processing/models/emotionV50/CAER_model_weights.pth'
+            else:
+                filepath='./caer_processing/models/emotionV50/CAER_laban_model_weights.pth'
             read_file = open("./caer_processing/models/emotionV50/feature.list")
             line = read_file.read().replace("[", "").replace("]","")
             feature_list = [int(element) for element in line.split()]    
         case "EmotionV80":
-            filepath='./caer_processing/models/emotionV80/CAER_model_weights.pth'
+            if USE_LABAN_FEATURES == False:
+                filepath='./caer_processing/models/emotionV80/CAER_model_weights.pth'
+            else:
+                filepath='./caer_processing/models/emotionV80/CAER_laban_model_weights.pth'
             read_file = open("./caer_processing/models/emotionV80/feature.list")
             line = read_file.read().replace("[", "").replace("]","")
             feature_list = [int(element) for element in line.split()]        
@@ -98,16 +114,22 @@ def prepare_loop():
     global MODEL_TO_TEST, emotion_model, detector, device, features_to_delete
     # Create model instance
     weight_filepath, features_to_delete = load_model_configuration(MODEL_TO_TEST)
-    num_of_features = 51 - len(features_to_delete)
+    if USE_LABAN_FEATURES == False:
+        num_of_features = 51 - len(features_to_delete)
+    else:
+        num_of_features = 26 - len(features_to_delete)
     match MODEL_TO_TEST:
         case "EmotionV0":
-            emotion_model = EmotionV0(51,104,7)
+            if USE_LABAN_FEATURES == False:
+                emotion_model = EmotionV0(num_of_features,num_of_features*2,7)
+            else:
+                emotion_model = EmotionV0(num_of_features,num_of_features*2,7)
         case "EmotionV1":
-            emotion_model = EmotionV1(num_of_features,104,7)
+            emotion_model = EmotionV1(num_of_features,num_of_features*2,7)
         case "EmotionV50":
-            emotion_model = EmotionV50(num_of_features,35,7)
+            emotion_model = EmotionV50(num_of_features,num_of_features*2,7)
         case "EmotionV80":
-            emotion_model = EmotionV80(num_of_features,60,7)
+            emotion_model = EmotionV80(num_of_features,num_of_features*2,7)
     emotion_model.load_state_dict(torch.load(weight_filepath, map_location=torch.device(device)))
     #Init Mediapipe Landmarker
     base_options = python.BaseOptions(model_asset_path='./landmark_files/pose_landmarker_heavy.task', delegate="GPU")
@@ -153,30 +175,34 @@ def run_video_loop():
         else:
             cv2.imshow("MediaPipe Pose Landmark", image)
             continue
-        print(frame_index)
+        #print(frame_index)
         if frame_index == FRAME_BUFFER_MAX_SIZE:
             if len(current_points) > 0:
                 frame_buffer = np.asarray(current_points)
                 frame_buffer_as_dataframe = pd.DataFrame(data=frame_buffer, columns=['frame','person','x','y','z'])
-                current_feature_extractor = CAERFeatureExtractor(frame_buffer_as_dataframe, False)
-                calculated_values = current_feature_extractor.get_element_list_as_dataframes()
+                current_feature_extractor = CAERFeatureExtractor(frame_buffer_as_dataframe, USE_LABAN_FEATURES, False)
+                if USE_LABAN_FEATURES == False:
+                    calculated_values = current_feature_extractor.get_element_list_as_dataframes()
+                else:
+                    calculated_values = current_feature_extractor.get_laban_movement_list_as_dataframes()
                 frame_index = -5
                 calc_values = np.asarray(calculated_values.iloc[1:,].values, dtype=np.float32)
                 calc_values = np.delete(calc_values, features_to_delete,axis=1)
                 calc_values_as_tensor = torch.tensor(calc_values, dtype=torch.float32).to(device)
                 emotion_as_tensor = emotion_model(calc_values_as_tensor)
-                print(f"max value in tensor: {torch.argmax(emotion_as_tensor)}")
-                emotion_as_value = torch.argmax(emotion_as_tensor).item()
+                #print(f"tensor: {emotion_as_tensor[0]}")
+                #print(f"max value in tensor: {torch.argmax(emotion_as_tensor[0])}")
+                emotion_as_value = torch.argmax(emotion_as_tensor[0]).item()
                 match emotion_as_value:
-                    case 1: emotion_as_word = "Anger"
-                    case 2: emotion_as_word = "Disgust"
-                    case 3: emotion_as_word = "Fear"
-                    case 4: emotion_as_word = "Happy"
-                    case 5: emotion_as_word = "Sad"
-                    case 6: emotion_as_word = "Surprise"
-                    case 7: emotion_as_word = "Neutral"
+                    case 0: emotion_as_word = "Anger"
+                    case 1: emotion_as_word = "Disgust"
+                    case 2: emotion_as_word = "Fear"
+                    case 3: emotion_as_word = "Happy"
+                    case 4: emotion_as_word = "Sad"
+                    case 5: emotion_as_word = "Surprise"
+                    case 6: emotion_as_word = "Neutral"
                     case _: emotion_as_word = str(emotion_as_value)
-                print(f"Emotion: {emotion_as_value}")
+                #print(f"Emotion: {emotion_as_value}")
                 current_points = []
                 frame_buffer_full = True
                 frame_index = 0
@@ -187,6 +213,8 @@ def run_video_loop():
             frame_index += 1
         else:
             frame_buffer_full = False
+        if frame_index == 100:
+            frame_index = 0
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
     cap.release()

@@ -21,7 +21,7 @@ Steps to start the extraction:
 
 7. If you want to use higher level Laban Motor Elements as features for model training, you can choose the USE_LABAN_FEATURES option:
     a. Set line 15 "USE_LABAN_FEATURES" to True in "run_pose_extraction.py" and run it. This will create csv files with Laban Motor Elements as features in CAER train, test and validation directories
-    b. Then, set line 17 "USE_LABAN_FEATURES"  to True in "caer_processing/CAER_model_training.py" and run it to train a model with these csv files (options described under 5 are still possible)
+    b. Then, set line 17 "USE_LABAN_FEATURES"  to True in "caer_processing/CAER_model_training.py" and run it to train a model with these csv files (option 5a is still possible)
     c. To test these new models, set line 19 "USE_LABAN_FEATURES" to True in "caer_test_model.py" and run it
 
 
