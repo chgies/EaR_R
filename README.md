@@ -1,15 +1,19 @@
 This Repository is used for my BA Thesis, which is about Emotion recognition in remote therapy situations.
 
-Start pose extraction by downloading CAER dataset, adding them to your PATH and execute pose_processing.py
+Start pose extraction by downloading CAER dataset (see information on https://caer-dataset.github.io/), adding it to your PATH and execute pose_processing.py.
 
 Prerequisites:
 Python >= 3.10
 Python modules as mentioned in requirements.txt
 
 Steps to start the extraction:
+
 1. Add CAER directory to your PATH as CAER_DIR
+
 2. Clone repository to your local file system
+
 3. If needed, install required python modules: "python -m pip install -r "./requirements.txt"
+
 4. Run "run_pose_extraction.py" to start pose extraction for every video, all poses get extracted, recalculated and saved as csv files in CAER "train", "test" and "validation" directories
     a. You can choose which Mediapipe posel model you like to use by changing line 12 in "run_pose_extraction.py". Possible models are "lite", "full", "heavy". You can find more information at https://developers.google.com/mediapipe/solutions/vision/pose_landmarker
 
@@ -25,7 +29,10 @@ Steps to start the extraction:
     c. To test these new models, set line 19 "USE_LABAN_FEATURES" to True in "caer_test_model.py" and run it
 
 
+
+
 You can find information for feature extraction and further use in the 'references' folder
+
 
 This code is work in progress.
 
