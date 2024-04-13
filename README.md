@@ -14,23 +14,16 @@ Steps to start the extraction:
     a. You can choose which Mediapipe posel model you like to use by changing line 12 in "run_pose_extraction.py". Possible models are "lite", "full", "heavy". You can find more information at https://developers.google.com/mediapipe/solutions/vision/pose_landmarker
 
 5. Run "caer_processing/models/CAER_model_training.py" to train your model
-    a. You can choose which model you'd like to use by changing line 16 in CAER_model_training.py. If you type "EmotionV1", you train the model with features manually chosen by me. If you change it to "EmotionV50" or "EmotionV80" AND set line 13 "AUTO_SORT_IMPORTANCE" to True, the program will use Random Forest Classification to find the features with 50% resp. 80% importance anf use them to train the net.
-    b. You can chose to rescale the dataset by changin line 14 "CREATE_NORMALIZED_CSV" to True. The program will then use 3 normalization methods on the dataset, save the new datasets into files in the CAER trian and test directories and train the normal and the normalized datasets sequentially. This can improve model accuracy.
+    a. You can choose which model you'd like to use by changing line 14 in CAER_model_training.py. If you type "EmotionV1", you train the model with features manually chosen by me. If you change it to "EmotionV50" or "EmotionV80" AND set line 21 "AUTO_SORT_IMPORTANCE" to True, the program will use Random Forest Classification to find the features with 50% resp. 80% importance and use them to train the net.
+    b. You can chose to rescale the dataset by changin line 25 "CREATE_NORMALIZED_CSV" to True. The program will then use 3 normalization methods on the dataset, save the new datasets into files in the CAER trian and test directories and train the normal and the normalized datasets sequentially. This can improve model accuracy.
 6. Run "caer_test_model" to test the model with your webcam
     a. like in step 5, you can change line 15 "MODEL_TO_TEST" to choose the model you like to test. "EmotionV1", "EmotionV50" and "EmotionV80" are possible
 
-Currently implemented:
-    - pose extraction from CANDOR into csv files
-    - pose extraction of CAER into csv files
-    - skeleton functions for doing extractions in a cloud environment
-    - feature extraction for CAER csv files
-    - Laban element calculation for CAER files
-    - Use these dataframes to get an overview of the specific values for every emotion
-    - Use these dataframes to calculate Laban components for the elements
-    - Train a Neural Network using the pose data, the elements (and the emotions as labels) (STARTED)
-    
-ToDo:
-    - WRITE TESTS, CLEAN UP!
+7. If you want to use higher level Laban Motor Elements as features for model training, you can choose the USE_LABAN_FEATURES option:
+    a. Set line 15 "USE_LABAN_FEATURES" to True in "run_pose_extraction.py" and run it. This will create csv files with Laban Motor Elements as features in CAER train, test and validation directories
+    b. Then, set line 17 "USE_LABAN_FEATURES"  to True in "caer_processing/CAER_model_training.py" and run it to train a model with these csv files (options described under 5 are still possible)
+    c. To test these new models, set line 19 "USE_LABAN_FEATURES" to True in "caer_test_model.py" and run it
+
 
 You can find information for feature extraction and further use in the 'references' folder
 
