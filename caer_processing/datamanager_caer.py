@@ -50,6 +50,6 @@ def get_caer_csv_files(CAER_DIR):
     csv_list = []
     for r, d, f in os.walk(CAER_DIR):
         for file in f:
-            if '.csv' in file:
+            if '.csv' in file and not file.endswith("values.csv"):
                 csv_list.append(os.path.join(r, file))
     return csv_list

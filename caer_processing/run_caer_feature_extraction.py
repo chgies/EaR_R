@@ -5,8 +5,41 @@ from caer_processing.datamanager_caer import get_caer_csv_files
 from caer_processing.datamanager_caer import get_caer_directory
 from caer_processing.caer_feature_extractor import CAERFeatureExtractor
 
-# If this is True, the program will Calculate the Laban Movement Features instead of the normal f-Table described by Aristidou et al. (2015)
-ALTERNATIVE_LABAN_FEATURES = True
+
+def extract_all_csv_values(use_laban_features):
+    """
+    Scan all directories of the CAER dataset and combine all csv files into one big file.
+    
+        Params:
+            None
+        Returns:
+            None
+    """
+    csv_file_list = get_caer_csv_files(get_caer_directory())
+    csv_dir_list = []
+    for csv_file in csv_file_list:
+        splitted_path = list(os.path.split(csv_file))
+        splitted_path[0] = splitted_path[0].replace("\\","/").replace("//","/")
+        if splitted_path[0] not in csv_dir_list:
+            csv_dir_list.append("/".join(splitted_path[:len(splitted_path)-1]))
+    print(f"Extracting Laban elements from {len(csv_file_list)} csv files in {len(csv_dir_list)} directories. Please wait...")
+    dirs_to_extract = [csv_dir_list[0].rsplit("/",1)[0],csv_dir_list[10].rsplit("/",1)[0],csv_dir_list[20].rsplit("/",1)[0]]
+    analyzed_directories = 0
+    if use_laban_features == False:
+        with concurrent.futures.ProcessPoolExecutor(max_workers=3) as executor:
+            for result in executor.map(extract_values_in_dir, dirs_to_extract):
+                if result != -1:
+                    analyzed_directories += 7
+                    print(f"{analyzed_directories} of {len(csv_dir_list)} directories have been analyzed.")
+    else:
+        with concurrent.futures.ProcessPoolExecutor(max_workers=3) as executor:
+            for result in executor.map(extract_laban_elements_in_dir, dirs_to_extract):
+                if result != -1:
+                    analyzed_directories += 7
+                    print(f"{analyzed_directories} of {len(csv_dir_list)} directories have been analyzed.")
+
+    print("All directories have been analyzed. Data hase been saved as csv files in CAER directory.")
+
 
 def extract_values_in_dir(csv_directory):
     """
@@ -14,7 +47,7 @@ def extract_values_in_dir(csv_directory):
     make this data available for model training. After that, add a column with "emotion" label.
 
         Params: 
-            csv_dorectory (String): The path to the directory in CAER dataset
+            csv_directory (String): The path to the directory in CAER dataset
         Returns:
             None
     """
@@ -32,7 +65,7 @@ def extract_values_in_dir(csv_directory):
     for csv_dir in csv_dir_list:
         for file in os.listdir(csv_dir):
             if '.csv' in file:
-                feature_extractor = CAERFeatureExtractor(os.path.join(csv_dir, file))
+                feature_extractor = CAERFeatureExtractor(os.path.join(csv_dir, file), False, True)
                 match  csv_dir.rsplit("/",1)[1]:
                     case "Anger": 
                         label = 1
@@ -60,39 +93,6 @@ def extract_values_in_dir(csv_directory):
     combined_csv.to_csv(csv_dir_list[0].rsplit("/",1)[0] + f"/extracted_{dir_name}_values.csv")
     print("Element extraction completed.")
 
-def extract_all_csv_values():
-    """
-    Scan all directories of the CAER dataset and combine all csv files into one big file.
-    
-        Params:
-            None
-        Returns:
-            None
-    """
-    csv_file_list = get_caer_csv_files(get_caer_directory())
-    csv_dir_list = []
-    for csv_file in csv_file_list:
-        splitted_path = list(os.path.split(csv_file))
-        splitted_path[0] = splitted_path[0].replace("\\","/").replace("//","/")
-        if splitted_path[0] not in csv_dir_list:
-            csv_dir_list.append("/".join(splitted_path[:len(splitted_path)-1]))
-    print(f"Extracting Laban elements from {len(csv_file_list)} csv files in {len(csv_dir_list)} directories. Please wait...")
-    dirs_to_extract = [csv_dir_list[0].rsplit("/",1)[0],csv_dir_list[10].rsplit("/",1)[0],csv_dir_list[20].rsplit("/",1)[0]]
-    analyzed_directories = 0
-    if ALTERNATIVE_LABAN_FEATURES == False:
-        with concurrent.futures.ProcessPoolExecutor(max_workers=3) as executor:
-            for result in executor.map(extract_values_in_dir, dirs_to_extract):
-                if result != -1:
-                    analyzed_directories += 7
-                    print(f"{analyzed_directories} of {len(csv_dir_list)} directories have been analyzed.")
-    else:
-        with concurrent.futures.ProcessPoolExecutor(max_workers=3) as executor:
-            for result in executor.map(extract_laban_elements_in_dir, dirs_to_extract):
-                if result != -1:
-                    analyzed_directories += 7
-                    print(f"{analyzed_directories} of {len(csv_dir_list)} directories have been analyzed.")
-
-    print("All directories have been analyzed. Data hase been saved as csv files in CAER directory.")
 
 def extract_laban_elements_in_dir(csv_directory):
     """
@@ -118,7 +118,7 @@ def extract_laban_elements_in_dir(csv_directory):
     for csv_dir in csv_dir_list:
         for file in os.listdir(csv_dir):
             if '.csv' in file:
-                feature_extractor = CAERFeatureExtractor(os.path.join(csv_dir, file))
+                feature_extractor = CAERFeatureExtractor(os.path.join(csv_dir, file), True, True)
                 match  csv_dir.rsplit("/",1)[1]:
                     case "Anger": 
                         label = 1
@@ -134,7 +134,7 @@ def extract_laban_elements_in_dir(csv_directory):
                         label = 6
                     case "Neutral": 
                         label = 7
-                enhanced_dataframe = feature_extractor.get_laban_element_list_as_dataframes()
+                enhanced_dataframe = feature_extractor.get_laban_movement_list_as_dataframes()
                 enhanced_dataframe['emotion'] = label
                 dataframes_to_combine = csv_data, enhanced_dataframe
                 csv_data = pd.concat(dataframes_to_combine, ignore_index=True)
@@ -143,5 +143,5 @@ def extract_laban_elements_in_dir(csv_directory):
     dataframes_to_combine = combined_dataframe, csv_data
     combined_csv = pd.concat(dataframes_to_combine)
     dir_name = csv_directory.rsplit("/",1)[1]
-    combined_csv.to_csv(csv_dir_list[0].rsplit("/",1)[0] + f"/extracted_{dir_name}_values.csv")
+    combined_csv.to_csv(csv_dir_list[0].rsplit("/",1)[0] + f"/extracted_laban_{dir_name}_values.csv")
     print("Element extraction completed.")

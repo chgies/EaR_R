@@ -13,7 +13,7 @@ class CAERFeatureExtractor:
     in Aristidou et al. 2015 (see reference directory). After that, the correspondent Laban components get calculated to
     make them usable for machine learning
     """
-    def __init__(self, input_data, arg_is_file = True):
+    def __init__(self, input_data, use_laban_features, arg_is_file = True):
         """
         Constructor for this class.
 
@@ -31,18 +31,22 @@ class CAERFeatureExtractor:
             self.csv_data = self.load_csv_into_memory()
         else:
             self.csv_data = input_data
-        self.convert_coords_to_laban()
-        
-        #normal version
-#        if arg_is_file:
-#            self.calc_laban_elements_of_video()
-#        else:
-#            self.calc_laban_elements_of_livestream_frame_buffer()
 
-        if arg_is_file:
-            self.calc_laban_movement_of_video()
+        # convert coords to features and append to frame_feature_array        
+        self.convert_raw_coords_to_features()
+            
+        # create sliding windows with features and append them to element_dataframes data
+        if use_laban_features == False:
+            if arg_is_file:
+                self.calc_feature_elements_of_video()
+            else:
+                self.calc_feature_elements_of_livestream_frame_buffer()
+        # create sliding windows with Laban Motor Elements and append them to laban_dataframes data
         else:
-            self.calc_laban_movement_of_livestream_frame_buffer()
+            if arg_is_file:
+                self.calc_laban_movement_of_video()
+            else:
+                self.calc_laban_movement_of_livestream_frame_buffer()
 
     def load_csv_into_memory(self):
         """
@@ -67,7 +71,8 @@ class CAERFeatureExtractor:
         """    
         return self.element_dataframes
 
-    def calc_laban_elements_of_livestream_frame_buffer(self):
+# Feature Calculation following Aristidou
+    def calc_feature_elements_of_livestream_frame_buffer(self):
         """
         Build a frame window out of give data from a livestream.
         Use the calculated laban elements saved in "self.frame_feature_array" variable to create
@@ -89,7 +94,7 @@ class CAERFeatureExtractor:
             dataframes_to_combine = self.element_dataframes, frame_window.elements_dataframe
             self.element_dataframes = pd.concat(dataframes_to_combine)
 
-    def calc_laban_elements_of_video(self):
+    def calc_feature_elements_of_video(self):
         """
         Build multiple frame windows out of a video file.
         Use the calculated laban elements saved in "self.frame_feature_array" variable to create
@@ -124,9 +129,10 @@ class CAERFeatureExtractor:
                             dataframes_to_combine = self.element_dataframes, frame_window.elements_dataframe
                             self.element_dataframes = pd.concat(dataframes_to_combine)
                             
-    def convert_coords_to_laban(self):
+
+    def convert_raw_coords_to_features(self):
         """
-        Converting the Mediapipe coordinates previously loaded into memory into Laban elements used to determine
+        Converting the Mediapipe coordinates previously loaded into memory into hig level features used to determine
         the Laban components
 
             Params:
@@ -161,7 +167,6 @@ class CAERFeatureExtractor:
                 else:
                     empty_frames += 1
 
-
     def calc_laban_movement_of_livestream_frame_buffer(self):
         """
         Build a frame window out of give data from a livestream.
@@ -183,7 +188,7 @@ class CAERFeatureExtractor:
             dataframes_to_combine = self.laban_dataframes, frame_laban_window.elements_dataframe
             self.laban_dataframes = pd.concat(dataframes_to_combine)
 
-
+    # Feature Calculation to Laban Motor Elements
     def calc_laban_movement_of_video(self):
         """
         Build multiple frame windows out of a video file.
@@ -219,7 +224,7 @@ class CAERFeatureExtractor:
                             dataframes_to_combine = self.laban_dataframes, frame_laban_window.elements_dataframe
                             self.laban_dataframes = pd.concat(dataframes_to_combine)
 
-    def get_laban_element_list_as_dataframes(self):
+    def get_laban_movement_list_as_dataframes(self):
             """
             Returns the calculated Laban element dataframes for every frame window in this video
 

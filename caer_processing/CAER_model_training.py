@@ -10,10 +10,21 @@ from models.emotionV1.EmotionV1 import EmotionV1
 from models.emotionV50.EmotionV50 import EmotionV50
 from models.emotionV80.EmotionV80 import EmotionV80
 
-AUTO_SORT_BY_IMPORTANCE = False
+# Choose, which model type to train. Possible: "EmotionV0", "EmotionV1", "EmotionV50", "EmotionV80" 
+MODEL_TO_TRAIN = "EmotionV80"
+
+# Choose if you want to train the net with features following Aristidou (2015, aee references folder), or high level Laban motor elements
+USE_LABAN_FEATURES = False
+
+# Choose, if you want to use Random Forest Classification to sort features by importance and delete unimportant features.
+# can be used with EmotionV1, EmotionV50 and EmotionV80 
+AUTO_SORT_BY_IMPORTANCE = True
+
+# Choose, if you want to normalize all dataset values and train the net with different values.
+# Doesn't work while USE_LABAN_FEATURES is True
 CREATE_NORMALIZED_CSV = False
+
 CAER_DIR = os.environ["CAER_DIR"]
-MODEL_TO_TRAIN = "EmotionV0"
 NUM_FEATURES = 0
 if torch.cuda.is_available():
     device = "cuda"
@@ -38,16 +49,24 @@ def train_and_test_model():
     for operation in operations:
         train_file_path = f"{CAER_DIR}/train/{operation}_train_values.csv"  # Replace with the actual path to your CSV file
         test_file_path = f"{CAER_DIR}/test/{operation}_test_values.csv"  # Replace with the actual path to your CSV file
-        df_train = pd.read_csv(train_file_path, header=None)
+        df_train = pd.read_csv(train_file_path)
         X_train_np_array = np.asarray(df_train.iloc[1:, 1:-1].values, dtype=np.float32)    
-        df_test = pd.read_csv(test_file_path, header=None)
+        y_train_np_array = np.asarray(df_train.iloc[1:, -1:].values, dtype=np.float32)
+        if USE_LABAN_FEATURES == False:
+            use_laban_features = False
+        else:
+            use_laban_features = True
+        df_test = pd.read_csv(test_file_path)
         X_test_np_array = np.asarray(df_test.iloc[1:, 1:-1].values, dtype=np.float32)
-        features_to_delete_for_v1 = [0,1,3,4,5,7,8,9,11,12,13,16,17,19,20,22,24,26,28,29,31,32,33,35,36,37,39,40,41,43,44,45,47,50]   
+        if use_laban_features == False:
+            features_to_delete_for_v1 = [0,1,3,4,5,7,8,9,11,12,13,16,17,19,20,22,24,26,28,29,31,32,33,35,36,37,39,40,41,43,44,45,47,50]   
+        else:
+            features_to_delete_for_v1 = []
         if AUTO_SORT_BY_IMPORTANCE:
             features_to_delete_for_50, features_to_delete_for_80 = calculate_least_important_features(df_test, operation)
         else:
             features_to_delete_for_50, features_to_delete_for_80 = ([],[])
-        # delete unused features in training dataset
+        # remove unused features in training dataset
         match MODEL_TO_TRAIN:
             case "EmotionV1":
                 X_train_np_array = np.delete(X_train_np_array, features_to_delete_for_v1,axis=1)
@@ -72,7 +91,6 @@ def train_and_test_model():
                     case 'standardized':
                         X_train_np_array = np.delete(X_train_np_array, features_to_delete_for_50,axis=1)                         
         NUM_FEATURES = X_train_np_array.shape[1]
-        y_train_np_array = np.asarray(df_train.iloc[1:, -1:].values, dtype=np.float32)
         X_train = torch.tensor(X_train_np_array, dtype=torch.float32).to(device)
         y_train = torch.tensor(y_train_np_array, dtype=torch.float32).to(device)
         
@@ -107,7 +125,7 @@ def train_and_test_model():
         test_dataset = TensorDataset(X_test, y_test)
         train_dl = DataLoader(train_dataset, batch_size =5500, shuffle=True)
         test_dl = DataLoader(test_dataset, batch_size = 5500, shuffle=True)
-        num_of_epochs = 100
+        num_of_epochs = 20
         # Put data to target device
         X_train, y_train = X_train.to(device), y_train.to(device)
         X_test, y_test = X_test.to(device), y_test.to(device)
@@ -115,30 +133,30 @@ def train_and_test_model():
         ### Training
         match MODEL_TO_TRAIN:
             case "EmotionV0":
-                training_model = EmotionV0(NUM_FEATURES,104,7).to(device)
+                training_model = EmotionV0(NUM_FEATURES,NUM_FEATURES*2,7).to(device)
                 deleted_feature_list = []
             case "EmotionV1":
-                training_model = EmotionV1(NUM_FEATURES,104,7).to(device)
+                training_model = EmotionV1(NUM_FEATURES,NUM_FEATURES*2,7).to(device)
                 deleted_feature_list = features_to_delete_for_v1
             case "EmotionV80":
-                training_model = EmotionV80(NUM_FEATURES,60,7).to(device)
+                training_model = EmotionV80(NUM_FEATURES,NUM_FEATURES*2,7).to(device)
                 deleted_feature_list = features_to_delete_for_80
             case "EmotionV50":
-                training_model = EmotionV50(NUM_FEATURES,35,7).to(device)
+                training_model = EmotionV50(NUM_FEATURES,NUM_FEATURES*2,7).to(device)
                 deleted_feature_list = features_to_delete_for_50
         train_model(operation, training_model, train_dl, num_of_epochs, learning_rate=0.0001)
-        save_model_weights(training_model, deleted_feature_list)
+        save_model_weights(training_model, deleted_feature_list, use_laban_features)
         # Evaluate the model on the validation set
         match MODEL_TO_TRAIN:
             case "EmotionV0":
-                val_model = EmotionV0(NUM_FEATURES,104,7).to(device)
+                val_model = EmotionV0(NUM_FEATURES,NUM_FEATURES*2,7).to(device)
             case "EmotionV1":
-                val_model = EmotionV1(NUM_FEATURES,104,7).to(device)
+                val_model = EmotionV1(NUM_FEATURES,NUM_FEATURES*2,7).to(device)
             case "EmotionV80":
-                val_model = EmotionV80(NUM_FEATURES,60,7).to(device)
+                val_model = EmotionV80(NUM_FEATURES,NUM_FEATURES*2,7).to(device)
             case "EmotionV50":
-                val_model = EmotionV50(NUM_FEATURES,35,7).to(device)
-        weight_path, features_to_delete = load_model_configuration(MODEL_TO_TRAIN)
+                val_model = EmotionV50(NUM_FEATURES,NUM_FEATURES*2,7).to(device)
+        weight_path, features_to_delete = load_model_configuration(MODEL_TO_TRAIN, use_laban_features)
         val_model.load_state_dict(torch.load(weight_path, map_location=torch.device(device)))
         evaluate_model(operation, val_model, test_dl)
 
@@ -207,7 +225,7 @@ def train_model(operation, model, data_loader, num_epochs=100, learning_rate=0.0
     print('Training complete!')
 
 
-def save_model_weights(model, features_to_delete):
+def save_model_weights(model, features_to_delete, use_laban_features):
     """
     Save the trained weights into a file
         Params:
@@ -218,19 +236,31 @@ def save_model_weights(model, features_to_delete):
     """
     match MODEL_TO_TRAIN:
         case "EmotionV0":
-            filepath='./caer_processing/models/emotionV0/CAER_model_weights.pth'
+            if use_laban_features == False:
+                filepath='./caer_processing/models/emotionV0/CAER_model_weights.pth'
+            else:
+                filepath='./caer_processing/models/emotionV0/CAER_laban_model_weights.pth'
         case "EmotionV1":
-            filepath='./caer_processing/models/emotionV1/CAER_model_weights.pth'
+            if use_laban_features == False:
+                filepath='./caer_processing/models/emotionV1/CAER_model_weights.pth'
+            else:
+                filepath='./caer_processing/models/emotionV1/CAER_laban_model_weights.pth'
             list_file = open(f"{os.path.split(filepath)[0]}/feature.list", 'w')
             list_file.write(str(features_to_delete))
             list_file.close()
         case "EmotionV80":
-            filepath='./caer_processing/models/emotionV80/CAER_model_weights.pth'
+            if use_laban_features == False:
+                filepath='./caer_processing/models/emotionV80/CAER_model_weights.pth'
+            else:
+                filepath='./caer_processing/models/emotionV80/CAER_laban_model_weights.pth'
             list_file = open(f"{os.path.split(filepath)[0]}/feature.list", 'w')
             list_file.write(str(features_to_delete))
             list_file.close()
         case "EmotionV50":
-            filepath='./caer_processing/models/emotionV50/CAER_model_weights.pth'
+            if use_laban_features == False:
+                filepath='./caer_processing/models/emotionV50/CAER_model_weights.pth'
+            else:
+                filepath='./caer_processing/models/emotionV50/CAER_laban_model_weights.pth'
             list_file = open(f"{os.path.split(filepath)[0]}/feature.list", 'w')
             list_file.write(str(features_to_delete))
             list_file.close()
@@ -238,7 +268,7 @@ def save_model_weights(model, features_to_delete):
     print(f'Model weights saved to {filepath}')
 
 
-def load_model_configuration(model_type):
+def load_model_configuration(model_type, use_laban_features):
     """
     Load saved weights and features that need to be deleted and returns them
         Params:
@@ -249,20 +279,32 @@ def load_model_configuration(model_type):
     """
     match model_type:
         case "EmotionV0":
-            filepath='./caer_processing/models/emotionV0/CAER_model_weights.pth'
+            if use_laban_features == False:
+                filepath='./caer_processing/models/emotionV0/CAER_model_weights.pth'
+            else:
+                filepath='./caer_processing/models/emotionV0/CAER_laban_model_weights.pth'
             feature_list = []
         case "EmotionV1":
-            filepath='./caer_processing/models/emotionV1/CAER_model_weights.pth'
+            if use_laban_features == False:    
+                filepath='./caer_processing/models/emotionV1/CAER_model_weights.pth'
+            else:
+                filepath='./caer_processing/models/emotionV1/CAER_laban_model_weights.pth'
             read_file = open("./caer_processing/models/emotionV1/feature.list")
             line = read_file.read().replace("[", "").replace("]","").replace(",","")
             feature_list = [int(element) for element in line.split()]
         case "EmotionV80":
-            filepath='./caer_processing/models/emotionV80/CAER_model_weights.pth'
+            if use_laban_features == False:
+                filepath='./caer_processing/models/emotionV80/CAER_model_weights.pth'
+            else:
+                filepath='./caer_processing/models/emotionV80/CAER_laban_model_weights.pth'
             read_file = open("./caer_processing/models/emotionV80/feature.list")
             line = read_file.read().replace("[", "").replace("]","")
             feature_list = [int(element) for element in line.split()]
         case "EmotionV50":
-            filepath='./caer_processing/models/emotionV50/CAER_model_weights.pth'
+            if use_laban_features == False:
+                filepath='./caer_processing/models/emotionV50/CAER_model_weights.pth'
+            else:
+                filepath='./caer_processing/models/emotionV50/CAER_laban_model_weights.pth'
             read_file = open("./caer_processing/models/emotionV50/feature.list")
             line = read_file.read().replace("[", "").replace("]","")
             feature_list = [int(element) for element in line.split()]    
@@ -354,6 +396,7 @@ def normalize_extracted_values(train_path, test_path):
         changed_train_values.to_csv(os.path.split(train_path)[0] + f"{operation}_train_values.csv")
         changed_test_values.to_csv(os.path.split(test_path)[0] + f"{operation}_test_values.csv")
 
+
 def calculate_least_important_features(feature_dataset, operation):
     """
     Use Random Forest classification on dataset to order the features by
@@ -383,8 +426,8 @@ def calculate_least_important_features(feature_dataset, operation):
     print(f"Feature ranking of  {operation} dataset:")
     over_50 = False
     over_80 = False
-    features_to_delete_for_50 = np.arange(51)
-    features_to_delete_for_80 = np.arange(51)
+    features_to_delete_for_50 = np.arange(len(columns))
+    features_to_delete_for_80 = np.arange(len(columns))
     shown_features = []
     for f in range(X_np_array.shape[1]):
         print(f"{f + 1}. Feature {indices[f]}, {columns[indices[f]]}, ({importances[indices[f]]*100} %)")
@@ -401,5 +444,6 @@ def calculate_least_important_features(feature_dataset, operation):
     print(f"features to delete for 50% importance in {operation} dataset : {features_to_delete_for_50}")
     print(f"features to delete for 80% importance in {operation} dataset : {features_to_delete_for_80}")
     return features_to_delete_for_50, features_to_delete_for_80
+
 
 train_and_test_model()
