@@ -10,7 +10,8 @@ import os
 # here you can define the landmark pose extraction model of mediapipe
 # Possible values: 'lite', 'full', 'heavy'
 MEDIAPIPE_MODEL_TO_CHOOSE = 'heavy'
- # choose False to extract posa data and calculate features describes in Aristidou 2015, True to save them as Laban elements
+
+# Choose if you want to train the net with features following Aristidou (2015, aee references folder), or high level Laban motor elements
 USE_LABAN_FEATURES = False
 
 CAER_DIR = os.environ["CAER_DIR"]
