@@ -16,7 +16,7 @@ from caer_processing.caer_feature_extractor import CAERFeatureExtractor
 MODEL_TO_TEST = "EmotionV0"
 
 # Choose if you want to train the net with features following Aristidou (2015, aee references folder), or high level Laban motor elements
-USE_LABAN_FEATURES = False
+USE_LABAN_FEATURES = True
 
 # Global variables
 current_points = []

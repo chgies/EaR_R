@@ -31,7 +31,7 @@ def test_caer(landmark_type):
     videolist = get_caer_movie_files(get_caer_directory())
     
     # for testing purposes use this line instead of the former line (on windows, on linux change path accordingly):
-    #videolist = [f"{CAER_DIR}/test/Anger/0001.avi"]
+    videolist = [f"{CAER_DIR}/test/Anger/0001.avi"]
     # start analyzing videos on video_list
     videos_to_analyze = len(videolist)
     print(f"{videos_to_analyze} videos still have to be analyzed. Working...")
@@ -45,7 +45,7 @@ def test_caer(landmark_type):
     print("All pose coordinates have been extracted from CAER dataset.")
     print("Extracting the Laban features and components from found pose data. Please Wait...")
     
-    extract_all_csv_values(USE_LABAN_FEATURES)
+    #extract_all_csv_values(USE_LABAN_FEATURES)
     
 if __name__ == "__main__":
 

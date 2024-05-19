@@ -152,12 +152,29 @@ class FrameWindow:
         f17_std = np.std(self.f17_array)
         element_values.append(f17_std)
         element_columns.append("f17_std")
-        f18_min = np.min(self.f18_array)
-        element_values.append(f18_min)
-        element_columns.append("f18_min")
-        f18_std = np.std(self.f18_array)
-        element_values.append(f18_std)
-        element_columns.append("f18_std")
+        f15_num_peaks = 0
+        f15_previous_sign = 1
+        f15_previous_value = 0
+        f15_sign = 1
+        for accel_value in self.f15_array:
+            if accel_value == self.f15_array[0]:
+                if accel_value <= 0:
+                    f15_previous_sign = -1
+                else:
+                    f15_previous_sign = 1
+                f15_previous_value = accel_value
+            else:
+                if accel_value > f15_previous_value:
+                    f15_sign = 1
+                else:
+                    f15_sign = -1
+
+                if f15_sign != f15_previous_sign:
+                    f15_num_peaks += 1
+                f15_previous_value = accel_value
+                f15_previous_sign = f15_sign
+        element_values.append(f15_num_peaks)
+        element_columns.append("f18")
         f19_min = np.min(self.f19_array)
         element_values.append(f19_min)
         element_columns.append("f19_min")

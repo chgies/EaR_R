@@ -14,7 +14,7 @@ class CAERPoseAnalyzer():
         self.output_window = None    # Used as screen variable to draw landmarks on
         self.last_timestamp_ms = 0   # needed by Mediapipe when in "LIVE_STREAM"-RunningMode
         
-        self.analyzed_results_person = "frame,person,x,y,z\n"  # used to store pose data of the person with the id 0 in a conversation
+        self.analyzed_results_person = "frame,person,x,y,z,visibility\n"  # used to store pose data of the person with the id 0 in a conversation
         
         self.landmark_type = landmark_type
         self.landmark_options = self.create_landmark_options()
@@ -187,7 +187,7 @@ class CAERPoseAnalyzer():
         if os.path.isfile(file_name):
             file = open(file_name, 'a', newline='')
             if self.analyzed_results_person.startswith("frame,person,x,y,z"):
-                self.analyzed_results_person = self.analyzed_results_person.lstrip("frame,person,x,y,z\n")
+                self.analyzed_results_person = self.analyzed_results_person.lstrip("frame,person,x,y,z,visibility\n")
             file.writelines(self.analyzed_results_person)
             self.analyzed_results_person = ""
         else:
@@ -218,7 +218,7 @@ class CAERPoseAnalyzer():
                 
             # this is used to save found points for csv files
             for landmark in pose_landmarks:
-                new_row = f"{frame},{idx},{landmark.x},{landmark.y},{landmark.z}"
+                new_row = f"{frame},{idx},{landmark.x},{landmark.y},{landmark.z},{landmark.visibility}"
                 self.analyzed_results_person += "\n" + new_row    
                     
             pose_landmarks_proto = landmark_pb2.NormalizedLandmarkList()

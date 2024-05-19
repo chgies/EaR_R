@@ -96,6 +96,7 @@ class FrameLabanWindow:
         f5_jump = self.f5_array[len(self.f5_array)-1]-self.f5_array[0]
         if f5_jump >= 0:
             self.jump = 1
+            print("JUMP")
         else:
             self.jump = 0
         element_values.append(self.jump)
@@ -107,6 +108,7 @@ class FrameLabanWindow:
         neg_f18 = np.sum(np.array(self.f18_array) <= 0, axis=0)
         if pos_f18 >= neg_f18/3 or neg_f18 >= pos_f18/3:
             self.rhythmicity = 1
+            print("RHYTHMICITY")
         else:
             self.rhythmicity = 0
         element_values.append(self.rhythmicity)
@@ -116,6 +118,7 @@ class FrameLabanWindow:
         f20_spread = self.f20_array[len(self.f20_array)-1]-self.f20_array[0]
         if f20_spread >= 0:
             self.spread = 1
+            print("SPREAD")
         else:
             self.spread = 0
         element_values.append(self.spread)
@@ -134,6 +137,7 @@ class FrameLabanWindow:
             free = False
         if light_weight and free:
             self.free_and_light = 1
+            print("FREE AND LIGHT")
         else:
             self.free_and_light = 0        
         element_values.append(self.free_and_light)
@@ -143,6 +147,7 @@ class FrameLabanWindow:
         f24_rise = self.f24_array[len(self.f24_array)-1]-self.f24_array[0]
         if f24_rise >= 0:
             self.up_and_rise = 1
+            print("UP AND RISE")
         else:
             self.up_and_rise = 0
         element_values.append(self.up_and_rise)
@@ -166,6 +171,7 @@ class FrameLabanWindow:
 
         if rotate:
             self.rotation = 1
+            print("ROTATION")
         else:
             self.rotation = 0
         element_values.append(self.rotation)
@@ -182,6 +188,7 @@ class FrameLabanWindow:
         f15_border = 126.25
         if np.std(self.f15_array) <= f15_border or np.std(self.f13_array) <= f13_border:
             self.passive_weight = 1
+            print("PASSIVE WEIGHT")
         else:
             self.passive_weight = 0
         element_values.append(self.passive_weight)
@@ -190,6 +197,7 @@ class FrameLabanWindow:
         # if arms are above chest, "Arms to upper body" is true
         if np.mean(self.f25_array) >= 1:
             self.arms_to_upper_body = 1
+            print("ARMS TO UPPER BODY")
         else:
             self.arms_to_upper_body = 0
         element_values.append(self.arms_to_upper_body)
@@ -198,6 +206,7 @@ class FrameLabanWindow:
         # if distance head-torso is lowering, then sink. Use f24_rise value
         if f24_rise < 0:
             self.sink = 1
+            print("SINK")
         else:
             self.sink = 0
         element_values.append(self.sink)
@@ -209,6 +218,7 @@ class FrameLabanWindow:
         root_joint_distance = self.f12_array[len(self.f12_array)-1]-self.f12_array[0]
         if head_distance < 0 and root_joint_distance <= root_movement_border:
             self.head_drop = 1
+            print("HEAD DROP")
         else:
             self.head_drop = 0
         element_values.append(self.head_drop)

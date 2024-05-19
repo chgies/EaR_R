@@ -4,7 +4,7 @@ Instances of this class are handled by feature_extraction class
 f-Values are taken from Aristidou (2015) - see feature_tables.pdf in /references directory
 You can find a description of the pose points found by mediapipe at https://developers.google.com/mediapipe/solutions/vision/pose_landmarker
 """
-from scipy.spatial import distance
+from scipy.spatial import distance, ConvexHull
 from shapely.geometry import Polygon
 class CAERFrameFeatures:
 
@@ -21,6 +21,7 @@ class CAERFrameFeatures:
         self.f12 = 0.0
         self.f13 = 0.0
         self.f15 = 0.0
+        self.f16 = 0.0
         self.f17 = 0.0
         self.f18 = 0.0
         # Shape components
@@ -35,6 +36,7 @@ class CAERFrameFeatures:
         self.face_and_centroid_points_list = []
         self.avg_hip_velocity = 0.0
         self.pelvis_velocity = 0.0
+        self.hips_acceleration_value = 0
         self.face_centroid_movement_correlation = (1,1,1)
         self.pelvis_position = (0.0, 0.0, 0.0)
         self.lhand_position = (0.0, 0.0, 0.0)
@@ -91,21 +93,25 @@ class CAERFrameFeatures:
 
         self.face_and_centroid_points_list = self.points_array[:10]    
         self.face_and_centroid_points_list.append(self.centroid_position)
+
         # f19 is bounding volume of all joints
         full_body_volume_list = [self.points_array[0], self.pelvis_position]
         full_body_volume_list += self.points_array
         left_vol = self.calculate_area_of_body("left", full_body_volume_list)
         right_vol = self.calculate_area_of_body("right", full_body_volume_list)
         self.f19 = left_vol + right_vol
-
-        upper_body_points_list = self.points_array[0], self.pelvis_position, self.points_array[12], self.points_array[11], self.points_array[14], self.points_array[13], self.points_array[20], self.points_array[19], self.points_array[24], self.points_array[23]
+        left_side_list = [self.points_array[0], self.points_array[12], self.points_array[14], self.points_array[16], self.points_array[18],  self.points_array[20], self.points_array[22], self.points_array[24], self.pelvis_position]
+        right_side_list = [self.points_array[0], self.points_array[11], self.points_array[13], self.points_array[15], self.points_array[17], self.points_array[19], self.points_array[21], self.points_array[23],  self.pelvis_position]
+        upper_body_points_list = [self.points_array[0], self.points_array[12], self.points_array[14], self.points_array[16], self.points_array[18], self.points_array[20], self.points_array[22], self.points_array[24], self.points_array[23], self.points_array[21], self.points_array[19], self.points_array[17], self.points_array[15], self.points_array[13], self.points_array[11]]
         # f22 is volume of left side
-        self.f22 = self.calculate_area_of_body("left", upper_body_points_list)
+        self.f22 = ConvexHull(left_side_list).area
+        #self.f22 = self.calculate_area_of_body("left", upper_body_points_list)
         # f23 is volume of right side
-        self.f23 = self.calculate_area_of_body("right", upper_body_points_list)
+        self.f23 = ConvexHull(right_side_list).area
+        #self.f23 = self.calculate_area_of_body("right", upper_body_points_list)
         # f20 is volume of upper body
-        self.f20 = self.f22 + self.f23
-
+        #self.f20 = self.f22 + self.f23
+        self.f20 = ConvexHull(upper_body_points_list).area
         """
             ToDo: think about how volume can be used: can become smaller if left volume
             is bigger, bc. mediapipe point coordinates are often lower than 1.0
@@ -358,16 +364,18 @@ class CAERFrameFeatures:
         previous_hands_velocity = previous_frame_velocities[1]
         previous_pelvis_velocity = previous_frame_velocities[2]
         # f11 is deceleration of pelvis
-        # f15 is acceleration of hands
-        # f17 is acceleration of hips 
+        # f15 is acceleration of hips 
+        # f16 is acceleration of hands
         if self.frame == 0:
             self.f11 = 0
             self.f15 = 0
-            self.f17 = 0
-        else:
+            self.f16 = 0
+        else:                   
+            # calculate rate of changes of deceleration per second
             self.f11 = -(self.pelvis_velocity - previous_pelvis_velocity)/((self.frame - last_frame)/30.0)
-            self.f15 = (self.f13 - previous_hands_velocity)/((self.frame - last_frame)/30.0)
-            self.f17 = (self.avg_hip_velocity - previous_hips_velocity)/((self.frame - last_frame)/30.0)
+            self.f15 = (self.avg_hip_velocity - previous_hips_velocity)/((self.frame - last_frame)/30.0)
+            self.f16 = (self.f13 - previous_hands_velocity)/((self.frame - last_frame)/30.0)
+            
         
     def get_accelerations(self):
         """
@@ -377,26 +385,43 @@ class CAERFrameFeatures:
         Returns:
             acceleration_list: A list of the pelvis and hands acceleration
         """
-        acceleration_list = [self.f15]
+        acceleration_list = [self.f11, self.f15, self.f16]
         return acceleration_list
 
-    def calc_jerk(self, previous_frames_acceleration_list, last_frame):
+
+    def calc_jerk(self, previous_frames_acceleration_list, previous_hips_acceleration_value):
         """
-        Calculate the rate of change in pelvis and hands acceleration ("Jerk")
+        Calculate the rate of change in hips' acceleration ("Jerk")
         Params:
             previous_frame_acceleration_list (list of tuples): A list containing the pelvis, left and right hands acceleration from the previuous frame
             last_frame: The number of the last frame
         Returns:
             None
         """
-        previous_hands_acceleration = previous_frames_acceleration_list[0]
-        # f18 is derivative of f15 accelerations with respect to time ("Jerk") -> rate of changes in acceleration
+        previous_hips_acceleration = previous_frames_acceleration_list[1]
+        #previous_hands_acceleration = previous_frames_acceleration_list[1]
+        # f18 is derivative of f11 accelerations with respect to time ("Jerk") -> rate of changes in acceleration
         # if current acceleration is bigger than last one, then positive value.
         if self.frame > 0:
-            self.f18 = (self.f15 - previous_hands_acceleration)/((self.frame - last_frame)/30.0)
+            if self.frame%30 == 0:
+                self.f18 = 0
+            else:
+                if self.f15 - previous_hips_acceleration == 0.0:
+                    self.hips_acceleration_value = 0
+                elif self.f15 - previous_hips_acceleration > 0:
+                    self.hips_acceleration_value = 1
+                else:
+                    self.hips_acceleration_value = -1
+                
+                if self.hips_acceleration_value > previous_hips_acceleration_value:
+                    self.f18 += 1
+                elif self.hips_acceleration_value < previous_hips_acceleration_value:
+                    self.f18 += 1
         else:
             self.f18 = 0
-        
+            self.hips_acceleration_value = 0
+
+
     ### Getter and Setter methods
         
     def get_frame(self):
@@ -506,3 +531,6 @@ class CAERFrameFeatures:
     
     def get_head_level(self):
         return self.horizontal_head_level
+    
+    def get_hips_acceleration_value(self):
+        return self.hips_acceleration_value
