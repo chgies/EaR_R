@@ -2,14 +2,14 @@ import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
 import pandas as pd
-from caer_processing.caer_frame_features import CAERFrameFeatures
-from caer_processing.frame_window import FrameWindow
-from caer_processing.frame_laban_window import FrameLabanWindow
+from candor_processing.candor_frame_features import CANDORFrameFeatures
+from candor_processing.frame_window import FrameWindow
+from candor_processing.frame_laban_window import FrameLabanWindow
 
-class CAERFeatureExtractor:
+class CANDORFeatureExtractor:
     """
     This class organizes the csv-file-to-laban-elements workflow. It reads a csv file with pose data of a video of the
-    CAER dataset (captured with Mediapipe pose landmarker). This data iss converted into Laban element values as mentioned
+    CANDOR dataset (captured with Mediapipe pose landmarker). This data iss converted into Laban element values as mentioned
     in Aristidou et al. 2015 (see reference directory). After that, the correspondent Laban components get calculated to
     make them usable for machine learning
     """
@@ -145,7 +145,7 @@ class CAERFeatureExtractor:
             empty_frames = 0
             for frame_index in range(0,frame_size):
                 if self.csv_data.loc[self.csv_data['frame'] == frame_index].size > 0:
-                    feature_object = CAERFrameFeatures(frame_index)
+                    feature_object = CANDORFrameFeatures(frame_index)
                     feature_object.load_dataframe_into_object(self.csv_data.loc[self.csv_data['frame'] == frame_index])
                     self.frame_feature_array.append(feature_object)
                     if frame_index == 1:

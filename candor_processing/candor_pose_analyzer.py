@@ -4,23 +4,52 @@ from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 from mediapipe.framework.formats import landmark_pb2
 import numpy as np
+import pandas as pd
 import time
 import os
 from urllib.request import urlretrieve
 
-class CAERPoseAnalyzer():
+class CANDORPoseAnalyzer():
 
     def __init__(self, video_path, landmark_type):
         self.output_window = None    # Used as screen variable to draw landmarks on
-        self.last_timestamp_ms = 0   # needed by Mediapipe when in "LIVE_STREAM"-RunningMode
-        
-        self.analyzed_results_person = "frame,person,x,y,z,visibility\n"  # used to store pose data of the person with the id 0 in a conversation
-        
+        self.last_timestamp_ms = 0   # needed by Mediapipe when in "LIVE_STREAM"-RunningMode        
+        self.analyzed_results_person = "frame,person,x,y,z,visibility,emotion\n"  # used to store pose data of the person with the id 0 in a conversation        
         self.landmark_type = landmark_type
         self.landmark_options = self.create_landmark_options()
+        self.person_id = os.path.split(video_path)[1][:-4]
         self.video_path = video_path
+        self.feature_list = self.load_feature_file()
         self.analyze_video()
         
+    def load_feature_file(self):
+        """
+        Read the corresponding "audio_video_features.csv" file of the movie and filter out its biggest emotion label. 
+        Since the csv shows one line per second of the movie, this function expands this to 30 frames per second,
+        resulting in one csv line being converted to 30 feature lines.
+
+            Params:
+                None
+            Returns:
+                feature_list(List): A list of emotional labels, 1 element stands for 1 frame (1/30 sec) of the movie
+        """
+        feature_file = os.path.split(self.video_path)[0]
+        feature_file = f"{feature_file[:-10]}/audio_video_features.csv"
+        feature_data = pd.read_csv(feature_file)
+        #print(feature_data.columns)
+        #print(feature_data.shape)
+        feature_list = []
+        frame = 0
+        for row in feature_data.iloc():
+            #if not pd.isna(row[51]):
+            if row[1] == self.person_id:    
+                for frame_of_second in range(frame,frame+30):
+                        emotion_index = np.argmax([row[45], row[46], row[47], row[48],row[49],row[50],row[51],row[52]])
+                        emotion_row = [frame_of_second, emotion_index]
+                        feature_list.append(emotion_row)
+                frame = frame_of_second+1        
+        return feature_list
+
     def check_pose_landmark_file(self):
         """
         This function checks if the needed Mediapipe Pose estimation landmark files are available in the sub directory
@@ -115,8 +144,8 @@ class CAERPoseAnalyzer():
         """
         Analyzes a video file or webcam stream and detects human poses frame by frame using MediaPipe Pose. 
 
-        Paramss:
-            path (String): The path to the video file or '0' for webcam stream.
+        Params:
+            None
         Returns:
             None
         """
@@ -150,7 +179,8 @@ class CAERPoseAnalyzer():
                     data=cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
                 self.timestamp_ms = int(cv2.getTickCount() / cv2.getTickFrequency() * 1000)
                 result = landmarker.detect_for_video(mp_image, self.timestamp_ms)
-                        
+                if len(result.pose_landmarks) == 0:
+                    print("Pause")
                 self.output_window = cv2.cvtColor(
                     self.draw_landmarks(frame, image, result), cv2.COLOR_BGR2RGB)
                 
@@ -159,8 +189,8 @@ class CAERPoseAnalyzer():
                 
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                     return -1
-
-                self.write_pose_to_csv()
+                if frame%100 == 0:
+                    self.write_pose_to_csv()
                 end_time = time.time()
                 print(f"FPS of video: {1.0 / (end_time-start_time)}")
                 frame += 1
@@ -187,7 +217,7 @@ class CAERPoseAnalyzer():
         if os.path.isfile(file_name):
             file = open(file_name, 'a', newline='')
             if self.analyzed_results_person.startswith("frame,person,x,y,z"):
-                self.analyzed_results_person = self.analyzed_results_person.lstrip("frame,person,x,y,z,visibility\n")
+                self.analyzed_results_person = self.analyzed_results_person.lstrip("frame,person,x,y,z,visibility,emotion\n")
             file.writelines(self.analyzed_results_person)
             self.analyzed_results_person = ""
         else:
@@ -218,7 +248,7 @@ class CAERPoseAnalyzer():
                 
             # this is used to save found points for csv files
             for landmark in pose_landmarks:
-                new_row = f"{frame},{idx},{landmark.x},{landmark.y},{landmark.z},{landmark.visibility}"
+                new_row = f"{frame},{idx},{landmark.x},{landmark.y},{landmark.z},{round(landmark.visibility,2)}, {self.feature_list[frame][1]}"
                 self.analyzed_results_person += "\n" + new_row    
                     
             pose_landmarks_proto = landmark_pb2.NormalizedLandmarkList()

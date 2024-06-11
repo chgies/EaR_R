@@ -6,17 +6,17 @@ import mediapipe as mp
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 from mediapipe.framework.formats import landmark_pb2
-from caer_processing.models.emotionV0.EmotionV0 import EmotionV0
-from caer_processing.models.emotionV1.EmotionV1 import EmotionV1
-from caer_processing.models.emotionV50.EmotionV50 import EmotionV50
-from caer_processing.models.emotionV80.EmotionV80 import EmotionV80
-from caer_processing.caer_feature_extractor import CAERFeatureExtractor
+#from caer_processing.models.emotionV0.EmotionV0 import EmotionV0
+#from caer_processing.models.emotionV1.EmotionV1 import EmotionV1
+#from caer_processing.models.emotionV50.EmotionV50 import EmotionV50
+#from caer_processing.models.emotionV80.EmotionV80 import EmotionV80
+from candor_processing.candor_feature_extractor import CANDORFeatureExtractor
 
 # Choose the model you like to test. Possible models are "EmotionV0", "EmotionV1", "EmotionV50" and "EmotionV80"
 MODEL_TO_TEST = "EmotionV0"
 
 # Choose if you want to train the net with features following Aristidou (2015, aee references folder), or high level Laban motor elements
-USE_LABAN_FEATURES = True
+USE_LABAN_FEATURES = False
 
 # Global variables
 current_points = []
@@ -113,7 +113,7 @@ def prepare_loop():
     """
     global MODEL_TO_TEST, emotion_model, detector, device, features_to_delete
     # Create model instance
-    weight_filepath, features_to_delete = load_model_configuration(MODEL_TO_TEST)
+    '''weight_filepath, features_to_delete = load_model_configuration(MODEL_TO_TEST)
     if not USE_LABAN_FEATURES:
         num_of_features = 51 - len(features_to_delete)
     else:
@@ -131,16 +131,24 @@ def prepare_loop():
         case "EmotionV80":
             emotion_model = EmotionV80(num_of_features,num_of_features*2,7)
     emotion_model.load_state_dict(torch.load(weight_filepath, map_location=torch.device(device)))
+    '''
     #Init Mediapipe Landmarker
+
+    # Create a pose landmarker instance with the live stream mode:
+    def print_result(result: mp.tasks.vision.HandLandmarkerResult, output_image: mp.Image, timestamp_ms: int):
+            # cv2.imshow('Show', output_image.numpy_view())
+            print('pose landmarker result: {}'.format(result))
+
     base_options = python.BaseOptions(model_asset_path='./landmark_files/pose_landmarker_heavy.task', delegate="GPU")
     options = vision.PoseLandmarkerOptions(
         base_options=base_options,
-        running_mode=vision.RunningMode.VIDEO,
+        running_mode=vision.RunningMode.LIVE_STREAM,
         num_poses=1,
         min_pose_detection_confidence=0.6,
         min_pose_presence_confidence=0.6,
         min_tracking_confidence=0.6,
         output_segmentation_masks=False,
+        result_callback = print_result
     )
     detector = vision.PoseLandmarker.create_from_options(options)
 
@@ -168,10 +176,10 @@ def run_video_loop():
             image_format=mp.ImageFormat.SRGB, 
             data=image)
         timestamp_ms = int(cv2.getTickCount() / cv2.getTickFrequency() * 1000)
-        detection_result = detector.detect_for_video(mp_image, timestamp_ms)
+        detection_result = detector.detect_async(mp_image, timestamp_ms)
         if detection_result is not None:
             output_window = cv2.cvtColor(
-                    draw_landmarks(frame_index, image, detection_result), cv2.COLOR_BGR2RGB)
+                    draw_landmarks(frame_index, mp_image, detection_result), cv2.COLOR_BGR2RGB)
         else:
             cv2.imshow("MediaPipe Pose Landmark", image)
             continue
@@ -180,7 +188,7 @@ def run_video_loop():
             if len(current_points) > 0:
                 frame_buffer = np.asarray(current_points)
                 frame_buffer_as_dataframe = pd.DataFrame(data=frame_buffer, columns=['frame','person','x','y','z'])
-                current_feature_extractor = CAERFeatureExtractor(frame_buffer_as_dataframe, USE_LABAN_FEATURES, False)
+                current_feature_extractor = CANDORFeatureExtractor(frame_buffer_as_dataframe, USE_LABAN_FEATURES, False)
                 if not USE_LABAN_FEATURES:
                     calculated_values = current_feature_extractor.get_element_list_as_dataframes()
                 else:
@@ -188,7 +196,8 @@ def run_video_loop():
                 frame_index = -5
                 calc_values = np.asarray(calculated_values.iloc[1:,].values, dtype=np.float32)
                 calc_values = np.delete(calc_values, features_to_delete,axis=1)
-                calc_values_as_tensor = torch.tensor(calc_values, dtype=torch.float32).to(device)
+                #calc_values_as_tensor = torch.tensor(calc_values, dtype=torch.float32).to(device)
+                '''
                 emotion_as_tensor = emotion_model(calc_values_as_tensor)
                 #print(f"tensor: {emotion_as_tensor[0]}")
                 #print(f"max value in tensor: {torch.argmax(emotion_as_tensor[0])}")
@@ -210,11 +219,12 @@ def run_video_loop():
                 else: 
                     emotion_as_word = str(emotion_as_value)
                 #print(f"Emotion: {emotion_as_value}")
+                '''
                 current_points = []
                 frame_buffer_full = True
                 frame_index = 0
         if output_window is not None:
-            cv2.putText(output_window, emotion_as_word, (int(output_window.shape[0]/2), 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,255,0), 2, cv2.LINE_AA)
+            #cv2.putText(output_window, emotion_as_word, (int(output_window.shape[0]/2), 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,255,0), 2, cv2.LINE_AA)
             cv2.imshow("MediaPipe Pose Landmark", cv2.cvtColor(output_window, cv2.COLOR_RGB2BGR))
         if not frame_buffer_full:
             frame_index += 1

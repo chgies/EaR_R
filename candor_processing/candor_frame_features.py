@@ -6,7 +6,7 @@ You can find a description of the pose points found by mediapipe at https://deve
 """
 from scipy.spatial import distance, ConvexHull
 from shapely.geometry import Polygon
-class CAERFrameFeatures:
+class CANDORFrameFeatures:
 
     def __init__(self, frame):
         self.frame = frame
