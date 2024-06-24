@@ -6,3 +6,4 @@ shapely
 mediapipe
 torch
 scikit-learn
+tensorflow

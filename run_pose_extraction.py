@@ -14,10 +14,14 @@ import os
 
 # here you can define the landmark pose extraction model of mediapipe
 # Possible values: 'lite', 'full', 'heavy'
-MEDIAPIPE_MODEL_TO_CHOOSE = 'lite'
+MEDIAPIPE_MODEL_TO_CHOOSE = 'full'
 
-# Choose if you want to train the net with features following Aristidou (2015, aee references folder), or high level Laban motor elements
+# Choose if you want to train the net with features following 
+# Aristidou (2015, aee references folder), or high level Laban motor elements
 USE_LABAN_FEATURES = False
+
+# Define the amount of parallel Processes when extracting
+MAX_WORKERS = 4
 
 CAER_DIR = os.environ["CAER_DIR"]
 CANDOR_DIR = os.environ["CANDOR_DIR"]
@@ -43,7 +47,7 @@ def test_caer(landmark_type):
     print(f"{videos_to_analyze} videos still have to be analyzed. Working...")
     analyzed_videos = 0
     type = landmark_type
-    with concurrent.futures.ProcessPoolExecutor(max_workers=3) as executor:
+    with concurrent.futures.ProcessPoolExecutor(max_workers=MAX_WORKERS) as executor:
         for result in executor.map(CAERPoseAnalyzer, videolist, repeat(type)):
             if result != -1:
                 analyzed_videos += 1
@@ -73,7 +77,7 @@ def test_candor(landmark_type):
     print(f"{videos_to_analyze} videos still have to be analyzed. Working...")
     analyzed_videos = 0
     type = landmark_type
-    with concurrent.futures.ProcessPoolExecutor(max_workers=5) as executor:
+    with concurrent.futures.ProcessPoolExecutor(max_workers=MAX_WORKERS) as executor:
         for result in executor.map(CANDORPoseAnalyzer, videolist, repeat(type)):
             if result != -1:
                 analyzed_videos += 1
