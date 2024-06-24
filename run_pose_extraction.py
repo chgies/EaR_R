@@ -14,7 +14,7 @@ import os
 
 # here you can define the landmark pose extraction model of mediapipe
 # Possible values: 'lite', 'full', 'heavy'
-MEDIAPIPE_MODEL_TO_CHOOSE = 'full'
+MEDIAPIPE_MODEL_TO_CHOOSE = 'heavy'
 
 # Choose if you want to train the net with features following 
 # Aristidou (2015, aee references folder), or high level Laban motor elements
