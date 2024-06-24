@@ -181,24 +181,23 @@ class CANDORPoseAnalyzer():
                 if not self.feature_list[frame] == "":
                     mp_image = mp.Image(
                         image_format=mp.ImageFormat.SRGB,
-                        data=cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+                        data=image)
                     self.timestamp_ms = int(cv2.getTickCount() / cv2.getTickFrequency() * 1000)
                     result = landmarker.detect_for_video(mp_image, self.timestamp_ms)
-                    #if len(result.pose_landmarks) == 0:
-                    #    print("No pose landmarkers found in this frame")
-                    self.output_window = cv2.cvtColor(
-                        self.draw_landmarks(frame, image, result), cv2.COLOR_BGR2RGB)
-                    #if self.output_window is not None:
-                    #    cv2.imshow("MediaPipe Pose Landmark", self.output_window)
-                #else:                
-                #    cv2.imshow("MediaPipe Pose Landmark", image)
-                
+                    if len(result.pose_landmarks) == 0:
+                        print("No pose landmarkers found in this frame")
+                    self.output_window = self.draw_landmarks(frame, image, result)
+                    if self.output_window is not None:
+                        cv2.imshow("MediaPipe Pose Landmark", self.output_window)
+                else:                
+                    cv2.imshow("MediaPipe Pose Landmark", image)
+                #
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                     return -1
-                if frame%100 == 0:
+                if frame%200 == 0:
                     self.write_pose_to_csv()
                 end_time = time.time()
-                #print(f"FPS of video: {1.0 / (end_time-start_time)}")
+                print(f"FPS of video: {1.0 / (end_time-start_time)}")
                 frame += 1
 
     def write_pose_to_csv(self):
@@ -218,6 +217,8 @@ class CANDORPoseAnalyzer():
         splitted_path = self.video_path.split("/")
         chars_to_cut_off = len(splitted_path[len(splitted_path)-1])
         coords_data_path = self.candor_dir + ("/extracted_coordinates/")
+        if not os.path.exists(coords_data_path):
+            os.makedirs(coords_data_path)
         file_name = coords_data_path + splitted_path[len(splitted_path)-1]+ "_posedata.csv"
         # actually write to the csv file
         if os.path.isfile(file_name):
@@ -257,7 +258,7 @@ class CANDORPoseAnalyzer():
                 new_row = f"{frame},{idx},{landmark.x},{landmark.y},{landmark.z},{round(landmark.visibility,2)}, {self.feature_list[frame][1]}"
                 self.analyzed_results_person += "\n" + new_row    
 
-            """        
+                   
             pose_landmarks_proto = landmark_pb2.NormalizedLandmarkList()
 
             pose_landmarks_proto.landmark.extend([
@@ -271,5 +272,5 @@ class CANDORPoseAnalyzer():
                 pose_landmarks_proto,
                 mp.solutions.pose.POSE_CONNECTIONS,
                 mp.solutions.drawing_styles.get_default_pose_landmarks_style())
-    	    """
+    	    
         return annotated_image
