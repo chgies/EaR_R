@@ -1,17 +1,11 @@
-import torch
-import concurrent.futures
+import os
 import argparse
-from caer_processing.caer_pose_analyzer import CAERPoseAnalyzer
-from caer_processing.datamanager_caer import get_caer_movie_files
-from caer_processing.datamanager_caer import get_caer_directory
-from caer_processing.run_caer_feature_extraction import extract_all_csv_values
+import concurrent.futures
+import torch
+import tensorflow as tf
 from candor_processing.candor_pose_analyzer import CANDORPoseAnalyzer
 from candor_processing.datamanager_candor import get_candor_movie_files
-from candor_processing.datamanager_candor import get_candor_directory
 from candor_processing.run_candor_feature_extraction import extract_all_csv_values
-from itertools import repeat
-import tensorflow as tf
-import os
 # Choose if you want to train the net with features following 
 # Aristidou (2015, aee references folder), or high level Laban motor elements
 # not yet implemented!!!
@@ -19,7 +13,6 @@ USE_LABAN_FEATURES = False
 
 CANDOR_DIR = os.environ["CANDOR_DIR"]
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
-
 
 def extract_candor(landmark_type, dir_to_extract, max_workers):
     """
@@ -37,10 +30,10 @@ def extract_candor(landmark_type, dir_to_extract, max_workers):
     
     # get a list of all videos that still have to be analyzed
     print("Gathering information about the video files in CANDOR dataset. Please wait...")
-    videolist = get_candor_movie_files(get_candor_directory())
+    videolist = get_candor_movie_files(CANDOR_DIR)
     
     # for testing purposes use this line instead of the former line (on windows, on linux change path accordingly):
-    #videolist = [f"{CANDOR_DIR}/processed_dataset/processed/fffda3e6-7d99-4db8-aa12-16e99fa454c2/processed/5d5162f1b50a1000169da137.mp4"]
+    #videolist = [f"{CANDOR_DIR}/processed_dataset/processed/fffda3e6-7d99-4db8-aa12-16e99fa454c2/processed/5d5162f1b50a1000169da137.mp4", f"{CANDOR_DIR}/processed_dataset/processed/fffda3e6-7d99-4db8-aa12-16e99fa454c2/processed/5977e3867412f8000194e1fe.mp4"]
     # start analyzing videos on video_list
     videos_to_analyze = len(videolist)
     print(f"{videos_to_analyze} videos still have to be analyzed. Working...")
@@ -53,19 +46,19 @@ def extract_candor(landmark_type, dir_to_extract, max_workers):
                 print(f"{analyzed_videos} of {videos_to_analyze} videos have been analyzed.")
     print("All pose coordinates have been extracted from CANDOR dataset.")
     print("Extracting the Laban features and components from found pose data. Please Wait...")
-    
-    #extract_all_csv_values(USE_LABAN_FEATURES)
+
+    extract_all_csv_values(USE_LABAN_FEATURES, dir_to_extract)
     
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='This program uses MediaPipeto to extract pose coordinates out of the CANDOR dataset.')
     parser.add_argument('-d','--extraction_dir', help='The directory where to put the csv files that contain the extracted poses', required=True)
-    parser.add_argument('-m','--model', help='The Pose Landmarker Model to use with MediaPipe. Possible: light, full and heavy. Default is heavy', required=False)
+    parser.add_argument('-m','--model', help='The Pose Landmarker Model to use with MediaPipe. Possible: lite, full and heavy. Default is heavy', required=False)
     parser.add_argument('-w','--workers', help='The amount of parallel processes that are used to extract the dataset. Default is 1', required=False)
     parser.parse_args()
     args = vars(parser.parse_args())    
     dir_to_extract = args['extraction_dir']
-    if args['model'] == 'light':
-        landmark_type = 'light'
+    if args['model'] == 'lite':
+        landmark_type = 'lite'
     elif args['model'] == 'full':
         landmark_type = 'full'
     if args['model'] == 'heavy':

@@ -1,10 +1,9 @@
 import warnings
-warnings.simplefilter(action='ignore', category=FutureWarning)
-
 import pandas as pd
 from candor_processing.candor_frame_features import CANDORFrameFeatures
 from candor_processing.frame_window import FrameWindow
 from candor_processing.frame_laban_window import FrameLabanWindow
+warnings.simplefilter(action='ignore', category=FutureWarning)
 
 class CANDORFeatureExtractor:
     """
@@ -24,7 +23,7 @@ class CANDORFeatureExtractor:
         """
         self.path_to_csv_file = input_data
         self.frame_feature_array = []
-        self.element_dataframes = pd.DataFrame(columns=['f3_min', 'f3_max', 'f3_mean', 'f3_std', 'f4_min', 'f4_max', 'f4_mean', 'f4_std', 'f5_min', 'f5_max', 'f5_mean', 'f10_min', 'f10_max', 'f10_mean', 'f11_num_peaks', 'f12_min', 'f12_max', 'f12_std', 'f13_min', 'f13_max', 'f13_std', 'f15_min', 'f15_std', 'f17_min', 'f17_std', 'f18', 'f19_min', 'f19_max', 'f19_mean', 'f19_std', 'f20_min', 'f20_max', 'f20_mean', 'f20_std', 'f22_min', 'f22_max', 'f22_mean', 'f22_std', 'f23_min', 'f23_max', 'f23_mean', 'f23_std', 'f24_min', 'f24_max', 'f24_mean', 'f24_std', 'f25_mean', 'z_mean', 'z_sum'])
+        self.element_dataframes = pd.DataFrame(columns=['f3_min', 'f3_max', 'f3_mean', 'f3_std', 'f4_min', 'f4_max', 'f4_mean', 'f4_std', 'f5_min', 'f5_max', 'f5_mean', 'f5_std', 'f10_min', 'f10_max', 'f10_mean', 'f11_num_peaks', 'f12_min', 'f12_max', 'f12_std', 'f13_min', 'f13_max', 'f13_std', 'f15_min', 'f15_std', 'f17_min', 'f17_std', 'f18', 'f19_min', 'f19_max', 'f19_mean', 'f19_std', 'f20_min', 'f20_max', 'f20_mean', 'f20_std', 'f22_min', 'f22_max', 'f22_mean', 'f22_std', 'f23_min', 'f23_max', 'f23_mean', 'f23_std', 'f24_min', 'f24_max', 'f24_mean', 'f24_std', 'f25_mean', 'z_mean', 'z_sum', 'emotion'])
         self.laban_dataframes = pd.DataFrame(columns=['jump', 'rhythmicity', 'spread', 'free_and_light', 'up_and_rise', 'rotation', 'passive_weight', 'arms_to_upper_body', 'sink', 'head_drop', 'retreat', 'condense_and_enclose', 'bind', 'twist_and_back', 'strong', 'sudden', 'advance', 'direct', 'hands_to_head', 'hands_above_head', 'body_shift_backing', 'head_shake', 'hands_to_body', 'orientation_change_to_lr', 'hands_to_head_backing', 'hands_up_backing'])
         
         if arg_is_file:
@@ -36,7 +35,7 @@ class CANDORFeatureExtractor:
         self.convert_raw_coords_to_features()
             
         # create sliding windows with features and append them to element_dataframes data
-        if use_laban_features == False:
+        if not use_laban_features:
             if arg_is_file:
                 self.calc_feature_elements_of_video()
             else:
@@ -91,7 +90,7 @@ class CANDORFeatureExtractor:
         for frame_index in range(0, max_index):
             frame_window.frame_buffer.append(self.frame_feature_array[frame_index])
             frame_window.calculate_elements_of_frame_buffer()
-            dataframes_to_combine = self.element_dataframes, frame_window.elements_dataframe
+            dataframes_to_combine = self.element_dataframes, frame_window.elements_dataframe, self.frame_feature_array
             self.element_dataframes = pd.concat(dataframes_to_combine)
 
     def calc_feature_elements_of_video(self):
@@ -107,8 +106,8 @@ class CANDORFeatureExtractor:
                 None
         """
         if not self.csv_data.empty:
-            window_size = 45
-            frames_to_start_new_sliding_window = 5
+            window_size = 30
+            frames_to_start_new_sliding_window = 30
             sliding_window_array = []
             max_index = len(self.frame_feature_array)
             sliding_window_array_is_full = False
@@ -140,7 +139,7 @@ class CANDORFeatureExtractor:
             Returns: 
                 None
         """
-        if not self.csv_data.empty:       
+        if not self.csv_data.empty:    
             frame_size = int(self.csv_data['frame'].iloc[-1])
             empty_frames = 0
             for frame_index in range(0,frame_size):

@@ -27,6 +27,7 @@ class FrameWindow:
         self.z_movement_array = []
         self.frame_buffer = []
         self.elements_dataframe = ""
+        self.emotion_array = []
 
     def calculate_elements_of_frame_buffer(self):
         """
@@ -54,6 +55,7 @@ class FrameWindow:
             self.f24_array.append(frame.get_f24())
             self.f25_array.append(frame.get_f25())
             self.z_movement_array.append(frame.get_z_movement())
+            self.emotion_array.append(frame.get_emotion())
         
         element_values = []
         element_columns = []
@@ -244,6 +246,8 @@ class FrameWindow:
         z_movement_sum = np.sum(self.z_movement_array)
         element_values.append(z_movement_sum)
         element_columns.append("z_sum")
+        emotion = np.mean(self.emotion_array)
+        element_values.append(emotion)
+        element_columns.append("emotion")
         element_values = [element_values]
-
         self.elements_dataframe = pd.DataFrame(data=element_values,columns=element_columns)

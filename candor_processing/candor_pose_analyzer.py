@@ -208,7 +208,8 @@ class CANDORPoseAnalyzer():
         Returns:
             None
         """
-
+        if not os.path.exists(self.dir_to_extract):
+            os.makedirs(self.dir_to_extract)
         file_name = self.dir_to_extract + "/" + person_id + "_posedata.csv"
 
         # actually write to the csv file

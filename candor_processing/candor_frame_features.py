@@ -46,6 +46,7 @@ class CANDORFrameFeatures:
         self.points_array = []
         self.z_movement = 0.0
         self.horizontal_head_level = 0.0
+        self.emotion = 0
 
     def calculate_z_movement(self, last_points_array):
         for point in self.points_array:
@@ -66,10 +67,13 @@ class CANDORFrameFeatures:
             None
         """
         raw_df_data = dataframe.to_dict(orient='records')
+        
         self.frame = raw_df_data[0]['frame']
         for row in raw_df_data:
             new_point = (row['x'],row['y'],row['z'])
             self.points_array.append(new_point)
+
+        self.emotion = raw_df_data[0]['emotion']
         
         ##### calculating necessary f points as mentioned in ./references/Feature_Tabellen.pdf
         self.lhand_position = self.points_array[20]
@@ -534,3 +538,6 @@ class CANDORFrameFeatures:
     
     def get_hips_acceleration_value(self):
         return self.hips_acceleration_value
+    
+    def get_emotion(self):
+        return self.emotion

@@ -1,8 +1,7 @@
-video_speed_test.py
-test_vid.mp4
 *.env
 test.py
 __pycache__
 *.pyc
 *cpython*
 *.task
+extracted
