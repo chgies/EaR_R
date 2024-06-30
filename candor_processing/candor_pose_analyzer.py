@@ -17,27 +17,25 @@ class CANDORPoseAnalyzer():
         self.landmark_options = self.create_landmark_options()
 
         
-    def load_feature_file(self, video_path):
+    def load_feature_file(self, video_path, person_id):
         """
         Read the corresponding "audio_video_features.csv" file of the movie and filter out its biggest emotion label. 
         Since the csv shows one line per second of the movie, this function expands this to 30 frames per second,
         resulting in one csv line being converted to 30 feature lines.
 
             Params:
-                None
+                video_path (String): The path to the video file
+                person_id (String): The id of the person in the video
             Returns:
                 feature_list(List): A list of emotional labels, 1 element stands for 1 frame (1/30 sec) of the movie
         """
         feature_file = os.path.split(video_path)[0]
         feature_file = f"{feature_file[:-10]}/audio_video_features.csv"
         feature_data = pd.read_csv(feature_file)
-        #print(feature_data.columns)
-        #print(feature_data.shape)
         feature_list = []
         frame = 0
         for row in feature_data.iloc():
-            #if not pd.isna(row[51]):
-            if row[1] == self.person_id:    
+            if row[1] == person_id:    
                 for frame_of_second in range(frame,frame+30):
                         emotion_index = np.argmax([row[45], row[46], row[47], row[48],row[49],row[50],row[51],row[52]])
                         emotion_row = [frame_of_second, emotion_index]
@@ -140,7 +138,7 @@ class CANDORPoseAnalyzer():
         Analyzes a video file or webcam stream and detects human poses frame by frame using MediaPipe Pose. 
 
         Params:
-            None
+            video_path (String): The path to the video file.
         Returns:
             None
         """
@@ -157,7 +155,7 @@ class CANDORPoseAnalyzer():
         last_timestamp_ms = 0   # needed by Mediapipe when in "LIVE_STREAM"-RunningMode        
         analyzed_results_person = "frame,person,x,y,z,visibility,emotion\n"  # used to store pose data of the person with the id 0 in a conversation        
         person_id = os.path.split(video_path)[1][:-4]
-        feature_list = self.load_feature_file(video_path)
+        feature_list = self.load_feature_file(video_path, person_id)
         
         print(f"Starting analysis of video {video_path}")
         with vision.PoseLandmarker.create_from_options(self.landmark_options) as landmarker:        
@@ -184,12 +182,11 @@ class CANDORPoseAnalyzer():
                     result = landmarker.detect_for_video(mp_image, self.timestamp_ms)
                     if len(result.pose_landmarks) == 0:
                         print("No pose landmarkers found in this frame")
-                    analyzed_results_person, output_window = self.draw_landmarks(frame, image, analyzed_results_person, result)
+                    analyzed_results_person, output_window = self.draw_landmarks(frame, image, feature_list, analyzed_results_person, result)
                     if output_window is not None:
                         cv2.imshow("MediaPipe Pose Landmark", output_window)
                 else:                
                     cv2.imshow("MediaPipe Pose Landmark", image)
-                #
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                     return -1
                 if frame%200 == 0:
@@ -205,10 +202,11 @@ class CANDORPoseAnalyzer():
         storing the data, the global pose variable gets overwritten with "" to
         save memory and to speed up computation
 
-        Parameters:
-            Nothing
+        Params:
+            person_id (String): The id of the person in the video
+            csv_results (String): The pose coordinates for every frame that are written to the csv file
         Returns:
-            Nothing
+            None
         """
 
         file_name = self.dir_to_extract + "/" + person_id + "_posedata.csv"
@@ -227,34 +225,31 @@ class CANDORPoseAnalyzer():
         file.close()
         return csv_results
         
-    def draw_landmarks(self, frame, image, csv_results, results):
+    def draw_landmarks(self, frame, image, feature_list, csv_results, results):
         """
         Draws landmarks on the given image using the results from pose estimation.
 
         Args:
-            frame (int): The current video frame 
-            image (numpy.ndarray): The input image.
-            results (mediapipe.python.solution_base.SolutionOutputs): The pose estimation results.
+            frame (int): The current video frame number
+            image (numpy.ndarray): The input image as numpy array.
+            feature_list (List): The list containing the emotion probabilities for the person for every frame
+            csv_results (String): The current list of pose estimation coordinates and emotions that is later written to the csv file
+            results (mediapipe.python.solution_base.SolutionOutputs): The MediaPipe pose estimation results for the current frame.
 
         Returns:
-            numpy.ndarray: The image with landmarks drawn.
+            csv_results (String): The current list of pose coordinates, with added coordinates and emotion probabilities for this frame
+            annotated_image (numpy.ndarray): The image with landmarks drawn as numpy array.
         """
-
         pose_landmarks_list = results.pose_landmarks
         annotated_image = np.copy(image)
-        
         # draw poses on opencv window.
         for idx in range(len(pose_landmarks_list)):
             pose_landmarks = pose_landmarks_list[idx]
-                
             # this is used to save found points for csv files
             for landmark in pose_landmarks:
-                new_row = f"{frame},{idx},{landmark.x},{landmark.y},{landmark.z},{round(landmark.visibility,2)}, {self.feature_list[frame][1]}"
+                new_row = f"{frame},{idx},{landmark.x},{landmark.y},{landmark.z},{round(landmark.visibility,2)}, {feature_list[frame][1]}"
                 csv_results += "\n" + new_row    
-
-                   
             pose_landmarks_proto = landmark_pb2.NormalizedLandmarkList()
-
             pose_landmarks_proto.landmark.extend([
                 landmark_pb2.NormalizedLandmark(
                     x=landmark.x,
@@ -265,6 +260,5 @@ class CANDORPoseAnalyzer():
                 annotated_image,
                 pose_landmarks_proto,
                 mp.solutions.pose.POSE_CONNECTIONS,
-                mp.solutions.drawing_styles.get_default_pose_landmarks_style())
-    	    
+                mp.solutions.drawing_styles.get_default_pose_landmarks_style())    	    
         return csv_results, annotated_image
