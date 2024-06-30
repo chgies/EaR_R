@@ -1,5 +1,6 @@
 import torch
 import concurrent.futures
+import argparse
 from caer_processing.caer_pose_analyzer import CAERPoseAnalyzer
 from caer_processing.datamanager_caer import get_caer_movie_files
 from caer_processing.datamanager_caer import get_caer_directory
@@ -57,13 +58,28 @@ def test_candor(landmark_type, dir_to_extract):
     #extract_all_csv_values(USE_LABAN_FEATURES)
     
 if __name__ == "__main__":
-
-    # Assuring if GPU is used
-    print(f"PyTorch version built with CUDA support: {torch.version.cuda}")
-    print(f"CUDA is available for PyTorch: {torch.cuda.is_available()}")
-    print(f"Found CUDA devices: {torch.cuda.device_count()}")
-    print(f"Tensorflow found devices: {tf.config.list_physical_devices('GPU')}")
+    parser = argparse.ArgumentParser(description='This program uses MediaPipeto to extract pose coordinates out of the CANDOR dataset.')
+    parser.add_argument('-d','--extraction_dir', help='The directory where to put the csv files that contain the extracted poses', required=True)
+    parser.add_argument('-m','--model', help='The Pose Landmarker Model to use with MediaPipe. Possible: light, full and heavy. Default is heavy', required=False)
+    args = vars(parser.parse_args())
     
-    landmark_type = MEDIAPIPE_MODEL_TO_CHOOSE
-    dir_to_extract = CANDOR_DIR + "/extracted_files/"
+    dir_to_extract = args['extraction_dir']
+    # code here
+
+    if args['model'] == 'light':
+        landmark_type = 'light'
+    elif args['model'] == 'full':
+        landmark_type = 'full'
+    if args['model'] == 'heavy':
+        landmark_type = 'heavy'
+    else:
+        landmark_typeEL_TO_CHOOSE = 'heavy'
+    
+    # Assuring if GPU is used
+    print("Checking CUDA and GPU support:")
+    print(f"    PyTorch version built with CUDA support: {torch.version.cuda}")
+    print(f"    CUDA is available for PyTorch: {torch.cuda.is_available()}")
+    print(f"    Found CUDA devices: {torch.cuda.device_count()}")
+    print(f"    Tensorflow found devices: {tf.config.list_physical_devices('GPU')}")
+    
     test_candor(landmark_type, dir_to_extract)
