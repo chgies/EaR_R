@@ -1,4 +1,4 @@
-This Repository is used for my BA Thesis, which is about Emotion recognition in remote therapy situations.
+This Repository is used for my BA Thesis, which is about emotion recognition in remote therapy situations.
 
 Start pose extraction by downloading CANDOR dataset (see information on https://paperswithcode.com/dataset/candor-corpus-1), adding it to your PATH and execute run_pose_extraction.py.
 
@@ -12,12 +12,12 @@ Steps to start the extraction:
 
 2. Clone repository to your local file system
 
-3. If needed, install required python modules: "python -m pip install -r "./requirements.txt"
+3. Install required python modules: "python -m pip install -r "./requirements.txt"
 
-4. Run "run_pose_extraction.py" to start pose extraction for every video, all pose keypoint coordinates get extracted and saved as csv files in CANDOR directory, creating a new "extracted_coordinates" directory
-    a. You can choose which Mediapipe posel model you like to use by changing line 17 in "run_pose_extraction.py". Possible models are "lite", "full", "heavy". You can find more information at https://developers.google.com/mediapipe/solutions/vision/pose_landmarker
-
-    b. You can choose how many parallel processes should be started when extracting the coordinates by changing MAX_WORKERS variable at line 24
+4. Run "run_pose_extraction.py" to start pose extraction for every video, all pose keypoint coordinates get extracted and saved as csv files into the directory you provide per command line. The file has following command line options:
+    MANDATORY: '-d' or '--extraction_dir': The directory where to put the csv files that contain the extracted poses
+    '-m' or '--model': The Pose Landmarker Model to use with MediaPipe. Possible: light, full and heavy. Default is heavy
+    -w' or '--workers': help='The amount of parallel processes that are used to extract the dataset. Default is 1
 
 You can find information for feature extraction and further use in the 'references' folder
 
