@@ -23,42 +23,11 @@ USE_LABAN_FEATURES = False
 # Define the amount of parallel Processes when extracting
 MAX_WORKERS = 4
 
-CAER_DIR = os.environ["CAER_DIR"]
 CANDOR_DIR = os.environ["CANDOR_DIR"]
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 
-def test_caer(landmark_type):
-    """
-    This function tests CAER dataset. It searches the video files of every participiant (not the combined video, due to computation speed) and
-    uses multiprocessing to analyze each of the videos. In the end, a csv file for every video exists, with the found pose coordinates
-    in every frame. You can change the max amount of concurrent processes by changing the 'Max_workers' value in the
-    ProcessPoopExecutor - calling line
-    """
-    
-    # get a list of all videos that still have to be analyzed
-    print("Gathering information about the video files in CAER dataset. Please wait...")
-    videolist = get_caer_movie_files(get_caer_directory())
-    
-    # for testing purposes use this line instead of the former line (on windows, on linux change path accordingly):
-    videolist = [f"{CAER_DIR}/test/Anger/0001.avi"]
-    # start analyzing videos on video_list
-    videos_to_analyze = len(videolist)
-    print(f"{videos_to_analyze} videos still have to be analyzed. Working...")
-    analyzed_videos = 0
-    type = landmark_type
-    with concurrent.futures.ProcessPoolExecutor(max_workers=MAX_WORKERS) as executor:
-        for result in executor.map(CAERPoseAnalyzer, videolist, repeat(type)):
-            if result != -1:
-                analyzed_videos += 1
-                print(f"{analyzed_videos} of {videos_to_analyze} videos have been analyzed.")
-    print("All pose coordinates have been extracted from CAER dataset.")
-    print("Extracting the Laban features and components from found pose data. Please Wait...")
-    
-    #extract_all_csv_values(USE_LABAN_FEATURES)
-
-
-def test_candor(landmark_type):
+def test_candor(landmark_type, dir_to_extract):
     """
     This function tests CANDOR dataset. It searches the video files of every participiant (not the combined video, due to computation speed) and
     uses multiprocessing to analyze each of the videos. In the end, a csv file for every video exists, with the found pose coordinates
@@ -76,9 +45,9 @@ def test_candor(landmark_type):
     videos_to_analyze = len(videolist)
     print(f"{videos_to_analyze} videos still have to be analyzed. Working...")
     analyzed_videos = 0
-    type = landmark_type
+    candorPoseAnalyzer = CANDORPoseAnalyzer(landmark_type, dir_to_extract)
     with concurrent.futures.ProcessPoolExecutor(max_workers=MAX_WORKERS) as executor:
-        for result in executor.map(CANDORPoseAnalyzer, videolist, repeat(type)):
+        for result in executor.map(candorPoseAnalyzer.analyze_video, videolist):
             if result != -1:
                 analyzed_videos += 1
                 print(f"{analyzed_videos} of {videos_to_analyze} videos have been analyzed.")
@@ -96,6 +65,5 @@ if __name__ == "__main__":
     print(f"Tensorflow found devices: {tf.config.list_physical_devices('GPU')}")
     
     landmark_type = MEDIAPIPE_MODEL_TO_CHOOSE
- 
-    #test_caer(landmark_type)
-    test_candor(landmark_type)
+    dir_to_extract = CANDOR_DIR + "/extracted_files/"
+    test_candor(landmark_type, dir_to_extract)
