@@ -65,7 +65,7 @@ def extract_candor(extract_poses, landmark_type, pose_dir_to_extract, feature_di
                     print(f"{analyzed_videos} of {videos_to_analyze} videos have been analyzed.")
         print("All pose coordinates have been extracted from CANDOR dataset.")
         
-    if not feature_dir_to_extract == "":
+    if feature_dir_to_extract == "":
         print("Extracting the Laban features and components from found pose data. Please Wait...")
         extract_all_csv_values(USE_LABAN_FEATURES, pose_dir_to_extract, feature_dir_to_extract)
     
