@@ -116,10 +116,6 @@ class CANDORFrameFeatures:
         # f20 is volume of upper body
         #self.f20 = self.f22 + self.f23
         self.f20 = ConvexHull(upper_body_points_list).area
-        """
-            ToDo: think about how volume can be used: can become smaller if left volume
-            is bigger, bc. mediapipe point coordinates are often lower than 1.0
-        """
 
         # f24 is distance head to root joint
         self.f24 = distance.euclidean(self.points_array[0], self.pelvis_position)

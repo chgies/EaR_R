@@ -14,10 +14,14 @@ Steps to start the extraction:
 
 3. Install required python modules: "python -m pip install -r "./requirements.txt"
 
-4. Run "run_pose_extraction.py" to start pose extraction for every video, all pose keypoint coordinates get extracted and saved as csv files into the directory you provide per command line. The file has following command line options:
-    MANDATORY: '-d' or '--extraction_dir': The directory where to put the csv files that contain the extracted poses
-    '-m' or '--model': The Pose Landmarker Model to use with MediaPipe. Possible: light, full and heavy. Default is heavy
-    -w' or '--workers': help='The amount of parallel processes that are used to extract the dataset. Default is 1
+4. Run "run_pose_extraction.py" with parameters to start pose extraction for every video, all pose keypoint coordinates get extracted and saved as csv files into the directory you provide per command line. The file has following command line options:
+    MANDATORY: '-p YOUR_POSE_DIRECTORY' or '--pose_dir YOUR_POSE_DIRECTORY': The directory where to put the csv files that contain the extracted poses (or where they are already saved, when you just want to calculate the features).
+    '-fdir YOUR_FEATURE_DIRECTORY' or '--feature_dir YOUR_FEATURE_DIRECTORY': The directory where to put the csv file that contain the features calculated from the pose csv files.
+    '-p' or '--extract_poses': Whether to extract poses out of the movies or not (if disabled and -fdir parameter is given, the features can be calculated without extracting the videos again).
+    '-m MODEL_NAME' or '--model MODEL_NAME': The Pose Landmarker Model to use with MediaPipe. Possible: light, full and heavy. Default is heavy.
+    '-w AMOUNT' or '--workers AMOUNT': help='The amount of parallel processes that are used to extract the dataset. Default is 1.
+    '-fps' or '--show_fps': Show extraction speed while extracting the poses.Default is Off.
+    '-v','--show_video': Show videos while extracting the poses. Disabling may slightly increase the pose extraction speed. Default is Off.
 
 You can find information for feature extraction and further use in the 'references' folder
 
